@@ -1,0 +1,10 @@
+﻿@page "/graph"
+@inject BlazorClient.Services.AppConfig config
+
+    <div class="jumbotron vertical-center">
+        <div class="container">
+            <div class="row">
+<iframe width="800" height="600" src=@config.PowerBIDashboard frameborder="0" allowFullScreen="true"></iframe>
+</div>
+</div>
+</div>

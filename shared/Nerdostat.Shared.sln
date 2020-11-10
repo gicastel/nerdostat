@@ -1,0 +1,18 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30621.155
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Nerdostat.Shared", "Nerdostat.Shared.shproj", "{22C4D92B-598E-47CA-93CE-7F65A54F1C33}"
+EndProject
+Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Nerdostat.Shared.projitems*{22c4d92b-598e-47ca-93ce-7f65a54f1c33}*SharedItemsImports = 13
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E3F67369-F205-4FCE-9A6F-FEB4881C6382}
+	EndGlobalSection
+EndGlobal

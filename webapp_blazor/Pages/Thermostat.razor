@@ -1,0 +1,58 @@
+@page "/"
+@inject BlazorClient.Services.IAPIClient ApiClient
+
+@if (status == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="jumbotron vertical-center">
+        <div class="container">
+            <div class="row "><input type="button" id="temp_plus" class="btn btn-lg btn-danger btn-block" value="+" /></div>
+            <div class="row row-eq-height">
+                <div id="tempValue" class="h3 font-weight-normal text-right col-6">@status.Temperature.ToString("##.#")</div>
+                <div id="setpointValue" class="h3 font-weight-normal text-right setpoint col-6">@status.CurrentSetpoint.ToString("##.#")</div>
+            </div>
+            <div class="row"><input type="button" id="temp_minus" class="btn btn-lg btn-primary btn-block" value="-" /></div>
+            <div class="row row-eq-height">
+                <div class="col-8 text-center">@status.IsHeaterOn</div>
+                <div id="OverrideDuration" class="col-2 text-center"></div>
+                <div class="col-2 text-center"><input id="reset" type="button" class="btn btn-secondary" value="CE" /></div>
+            </div>
+
+            <div class="row row-eq-height">
+                <div class="h5 font-weight-normal text-center col-3">Status:</div>
+                <div class="h5 font-weight-normal text-center col-3"><img id="heaterIO" src=""></div>
+                <div class="h5 font-weight-normal text-center col-3">Link:</div>
+                <div class="h5 font-weight-normal text-center col-3"><img id="connection" src=""></div>
+            </div>
+
+            <div class="row row-eq-height">
+                <div class="h5 font-weight-normal text-center col-3">Humidity:</div>
+                <div class="h5 font-weight-normal text-center col-3">
+                    <div id="humidityValue">@status.Humidity.ToString("##")</div>
+                    <div class="h5 font-weight-normal text-center col-3"></div>
+                    <div class="h5 font-weight-normal text-center col-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private Nerdostat.Shared.APIMessage status;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+        status = await ApiClient.GetData();
+        }
+        // Pokemon Exception Handler (TM)
+        catch (Exception ex)
+        {
+
+        }
+    }
+}
