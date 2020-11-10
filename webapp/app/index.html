@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <link rel="manifest" href="manifest.json">
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=yes">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
+  <link rel="manifest" href="favicon/site.webmanifest">
+  <link rel="mask-icon" href="favicon/safari-pinned-tab.svg" color="#5bbad5">
+  <meta name="msapplication-TileColor" content="#da532c">
+  <meta name="theme-color" content="#ffffff">
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  <link href="default.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+    integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+    integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+    crossorigin="anonymous"></script>
+  <link href="slider/bootstrap-slider.min.css" rel="stylesheet">
+  <script src="slider/bootstrap-slider.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pulltorefreshjs/0.1.16/pulltorefresh.min.js"></script>
+
+  <script src="api.js"></script>
+  <title>Nerd-o-stat</title>
+</head>
+
+<body>
+  <div class="jumbotron vertical-center">
+    <div class="container">
+      <div class="row "><input type="button" id="temp_plus" class="btn btn-lg btn-danger btn-block" value="+" /></div>
+      <div class="row row-eq-height">
+        <div id="tempValue" class="h3 font-weight-normal text-right col-3">--</div>
+        <div class="h3 font-weight-normal text-left col-3">°</div>
+        <div id="setpointValue" class="h3 font-weight-normal text-right setpoint col-3">--</div>
+        <div class="h3 font-weight-normal text-left setpoint col-3">°</div>
+      </div>
+      <div class="row"><input type="button" id="temp_minus" class="btn btn-lg btn-primary btn-block" value="-" /></div>
+      <div class="row row-eq-height">
+        <div class="col-8 text-center"><input type="text" id="heaterOn" /></div>
+        <div id="OverrideDuration" class="col-2 text-center"></div>
+        <div class="col-2 text-center"><input id="reset" type="button" class="btn btn-secondary" value="CE" /></div>
+      </div>
+      <div class="row row-eq-height">
+        <div class="h5 font-weight-normal text-center col-3">Status:</div>
+        <div class="h5 font-weight-normal text-center col-3"><img id="heaterIO" src=""></div>
+        <div class="h5 font-weight-normal text-center col-3">Link:</div>
+        <div class="h5 font-weight-normal text-center col-3"><img id="connection" src=""></div>
+      </div>
+      <div class="row row-eq-height">
+        <div class="h5 font-weight-normal text-center col-3">Humidity:</div>
+        <div class="h5 font-weight-normal text-center col-3"><div id="humidityValue"></div>
+        <div class="h5 font-weight-normal text-center col-3"></div>
+        <div class="h5 font-weight-normal text-center col-3"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => {
+            console.log('Service worker registered! 😎', reg);
+          })
+          .catch(err => {
+            console.log('😥 Service worker registration failed: ', err);
+          });
+      });
+    }
+  </script>
+  <script>
+    const ptr = PullToRefresh.init({
+      mainElement: 'body',
+      onRefresh() {
+        //window.location.reload();
+        LoadValues();
+      },
+    });
+  </script>
+</body>
+
+</html>
