@@ -1,5 +1,5 @@
 @page "/"
-@inject BlazorClient.Services.IAPIClient ApiClient
+@inherits ThermostatBase
 
 @if (status == null)
 {
@@ -9,16 +9,16 @@ else
 {
     <div class="jumbotron vertical-center">
         <div class="container">
-            <div class="row "><input type="button" id="temp_plus" class="btn btn-lg btn-danger btn-block" value="+" /></div>
+            <div class="row "><input type="button" id="temp_plus" class="btn btn-lg btn-danger btn-block" value="+" @onclick="TempUp"/></div>
             <div class="row row-eq-height">
                 <div id="tempValue" class="h3 font-weight-normal text-right col-6">@status.Temperature.ToString("##.#")</div>
                 <div id="setpointValue" class="h3 font-weight-normal text-right setpoint col-6">@status.CurrentSetpoint.ToString("##.#")</div>
             </div>
-            <div class="row"><input type="button" id="temp_minus" class="btn btn-lg btn-primary btn-block" value="-" /></div>
+            <div class="row"><input type="button" id="temp_minus" class="btn btn-lg btn-primary btn-block" value="-" @onclick="TempDown" /></div>
             <div class="row row-eq-height">
                 <div class="col-8 text-center">@status.IsHeaterOn</div>
                 <div id="OverrideDuration" class="col-2 text-center"></div>
-                <div class="col-2 text-center"><input id="reset" type="button" class="btn btn-secondary" value="CE" /></div>
+                <div class="col-2 text-center"><input id="reset" type="button" class="btn btn-secondary" value="CE" @onclick="Reset"/></div>
             </div>
 
             <div class="row row-eq-height">
@@ -38,21 +38,4 @@ else
             </div>
         </div>
     </div>
-}
-
-@code {
-    private Nerdostat.Shared.APIMessage status;
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-        status = await ApiClient.GetData();
-        }
-        // Pokemon Exception Handler (TM)
-        catch (Exception ex)
-        {
-
-        }
-    }
 }

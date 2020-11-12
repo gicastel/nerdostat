@@ -15,15 +15,18 @@ namespace BlazorClient.Services
     public interface IAPIClient
     {
         Task<APIMessage> GetData();
+        Task<APIMessage> ModifySetPoint(double newTempValue, int? duration);
+        Task<APIMessage> ResetSetPoint();
+
     }
 
-    public class APIclient : IAPIClient
+    public class APIClient : IAPIClient
     {
         private HttpClient _client;
 
         private readonly AppConfig config;
 
-        public APIclient(AppConfig _config)
+        public APIClient(AppConfig _config)
         {
             this.config = _config;
 
@@ -35,10 +38,28 @@ namespace BlazorClient.Services
         public async Task<APIMessage> GetData()
         {
             var response = await _client.GetAsync(_client.BaseAddress + "read");
-            var msgString = await response.Content.ReadAsStringAsync();
-            var msg = JsonConvert.DeserializeObject<APIResponse>(msgString);
+            var msg = await response.Content.ReadFromJsonAsync<APIResponse>();
             var payload = JsonConvert.DeserializeObject<APIMessage>(msg.payload);
             return payload;
         }
+
+        public async Task<APIMessage> ModifySetPoint(double newTempValue, int? duration)
+        {
+            var setpoint = new SetPoint(newTempValue, duration ?? 4);
+            var response = await _client.PostAsJsonAsync<SetPoint>(_client.BaseAddress + "setpoint/add", setpoint);
+            var msg = await response.Content.ReadFromJsonAsync<APIResponse>();
+            var payload = JsonConvert.DeserializeObject<APIMessage>(msg.payload);
+            return payload;
+        }
+
+        public async Task<APIMessage> ResetSetPoint()
+        {
+            var response = await _client.PostAsync(_client.BaseAddress + "setpoint/clear", null);
+            var msg = await response.Content.ReadFromJsonAsync<APIResponse>();
+            var payload = JsonConvert.DeserializeObject<APIMessage>(msg.payload);
+            return payload;
+        }
+
+        private record SetPoint(double setpoint, int hours);
     }
 }

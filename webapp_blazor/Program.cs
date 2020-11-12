@@ -24,7 +24,7 @@ namespace BlazorClient
             });
 
             // Nerdostat API service
-            builder.Services.AddSingleton<IAPIClient, APIclient>();
+            builder.Services.AddSingleton<IAPIClient, APIClient>();
 
 
             await builder.Build().RunAsync();
