@@ -18,7 +18,7 @@ namespace Nerdostat.Shared
         public double Humidity { get; set; }
         public double CurrentSetpoint { get; set; }
         public bool IsHeaterOn { get; set; }
-        public long? OverrideDuration { get; set; }
+        public long? OverrideEnd { get; set; }
         public long? HeaterOn { get; set; }
     }
 
