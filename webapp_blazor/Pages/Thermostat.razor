@@ -16,16 +16,18 @@ else
             </div>
             <div class="row"><input type="button" id="temp_minus" class="btn btn-lg btn-primary btn-block" value="-" @onclick="TempDown" /></div>
             <div class="row row-eq-height">
-                <div class="col-8 text-center">@status.IsHeaterOn</div>
-                <div id="OverrideDuration" class="col-2 text-center"></div>
+                <div id="OverrideDuration" class="col-5 text-center"><input type="range" step="15" min="0" max="720"
+               @bind-value="@OverrideEndInMinutes" @bind-value:event="oninput"
+               @onmouseup="ChangeSetpointDuration" @ontouchend="ChangeSetpointDuration"></div>
+               <div class="col-5 text-center">@OverrideUntil</div>
                 <div class="col-2 text-center"><input id="reset" type="button" class="btn btn-secondary" value="CE" @onclick="Reset"/></div>
             </div>
 
             <div class="row row-eq-height">
                 <div class="h5 font-weight-normal text-center col-3">Status:</div>
-                <div class="h5 font-weight-normal text-center col-3"><img id="heaterIO" src=""></div>
+                <div class="h5 font-weight-normal text-center col-3"><img id="heaterIO" src="@HeaterIcon"></div>
                 <div class="h5 font-weight-normal text-center col-3">Link:</div>
-                <div class="h5 font-weight-normal text-center col-3"><img id="connection" src=""></div>
+                <div class="h5 font-weight-normal text-center col-3"><img id="connection" src="@ConnectionIcon"></div>
             </div>
 
             <div class="row row-eq-height">
