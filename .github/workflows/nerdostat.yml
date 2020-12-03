@@ -24,8 +24,8 @@ jobs:
         filters: |
           api:
             - 'api/**'
-          frontend:
-            - 'webapp_blazor/**':
+          blazor:
+            - 'webapp_blazor/**'
               
   api:
     needs: changes
