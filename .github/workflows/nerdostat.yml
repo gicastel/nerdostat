@@ -1,0 +1,56 @@
+name: Nerd-o-stat CD pipelines
+
+on:
+  push:
+    branches: 
+     - main
+     - pipelines
+
+env:
+  API_FUNCTIONAPP_NAME: ${{ secrets.API_FUNCTIONAPP_NAME  }}
+  API_PUBLISH_PROFILE: ${{ secrets.API_PUBLISH_PROFILE }}
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    # Set job outputs to values from filter step
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      webapp_blazor: ${{ steps.filter.outputs.webapp_blazor }}
+    steps:
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          api:
+            - 'api/**'
+          frontend:
+            - 'webapp_blazor/**':
+              
+  api:
+    needs: changes
+    if: ${{ needs.changes.outputs.api == 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+          
+      - name: Setup .NET Core SDK 3.1.x
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 3.1.x
+      
+      - name: Resolve Project Dependencies Using Dotnet
+        run: >
+          pushd "./."
+          dotnet build --configuration Release --output "./output"
+          popd
+        shell: pwsh
+      
+      - name: Deploy to Azure Functions App
+        uses: Azure/functions-action@v1.1.8
+        with:
+          app-name: ${{ env.API_FUNCTIONAPP_NAME }}
+          publish-profile: ${{ env.API_PUBLISH_PROFILE }}
+          package: ./output
