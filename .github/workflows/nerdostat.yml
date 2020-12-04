@@ -18,6 +18,8 @@ jobs:
       api: ${{ steps.filter.outputs.api }}
       webapp_blazor: ${{ steps.filter.outputs.webapp_blazor }}
     steps:
+    # needs checkout
+    - uses: actions/checkout@v2
     - uses: dorny/paths-filter@v2
       id: filter
       with:
