@@ -6,10 +6,6 @@ on:
      - main
      - pipelines
 
-env:
-  API_FUNCTIONAPP_NAME: ${{ secrets.API_FUNCTIONAPP_NAME  }}
-  API_PUBLISH_PROFILE: ${{ secrets.API_PUBLISH_PROFILE }}
-
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -33,6 +29,9 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.api == 'true' }}
     runs-on: ubuntu-latest
+    env:
+      API_FUNCTIONAPP_NAME: ${{ secrets.API_FUNCTIONAPP_NAME  }}
+      API_PUBLISH_PROFILE: ${{ secrets.API_PUBLISH_PROFILE }}
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -45,7 +44,7 @@ jobs:
       
       - name: Resolve Project Dependencies Using Dotnet
         run: >
-          pushd "./."
+          pushd "./api/."
           dotnet build --configuration Release --output "./output"
           popd
         shell: pwsh
@@ -56,3 +55,34 @@ jobs:
           app-name: ${{ env.API_FUNCTIONAPP_NAME }}
           publish-profile: ${{ env.API_PUBLISH_PROFILE }}
           package: ./output
+          
+  blazor:
+    needs: changes
+    if: ${{ needs.changes.outputs.blazor == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      STORAGE_SAS: ${{ secrets.BLAZOR_STORAGE_SAS  }}
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+          
+      - name: Setup .NET SDK 5
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 5.x
+      
+      - name: Resolve Project Dependencies Using Dotnet
+        run: >
+          pushd "./webapp_blazor/."
+          dotnet build --configuration Release --output "./output"
+          popd
+        shell: pwsh
+
+      - name: Deploy to Azure Storage
+        uses: TravisSpomer/deploy-to-azure-storage@v1
+        with:
+          # The location of your built site files. (For example, "out".)
+          source-path: "./webapp_blazor/output/wwwroot"
+          # A SAS URL for your storage account. (You should store this in a Secret.)
+          sas-url: ${{ env.STORAGE_SAS }}
