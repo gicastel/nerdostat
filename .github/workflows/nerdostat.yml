@@ -87,7 +87,7 @@ jobs:
       - name: Resolve Project Dependencies Using Dotnet
         run: >
           pushd "./webapp_blazor/."
-          dotnet build --configuration Release --output "./output"
+          dotnet publish --configuration Release --output "./output"
           popd
         shell: pwsh
 
