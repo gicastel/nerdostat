@@ -62,6 +62,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       STORAGE_SAS: ${{ secrets.BLAZOR_STORAGE_SAS  }}
+      API_ENDPOINT: ${{ secrets.BLAZOR_API_ENDPOINT  }}
+      API_KEY: ${{ secrets.BLAZOR_API_KEY  }}
+      POWERBI_DASHBOARD: ${{ secrets.BLAZOR_PBI_DASHBOARD  }}
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -71,6 +74,15 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 5.x
+
+      - name: Blazor App Settings Variable Substitution
+        uses: microsoft/variable-substitution@v1
+        with:
+          files: 'webapp_blazor/wwwroot/appsettings.json'
+        env:
+          App.NerdostatAPIEndpoint: ${{ env.API_ENDPOINT }}
+          App.NerdostatAPIKey: ${{ env.API_KEY }}
+          App.PowerBIDashboard: ${{ env.POWERBI_DASHBOARD }}
       
       - name: Resolve Project Dependencies Using Dotnet
         run: >
