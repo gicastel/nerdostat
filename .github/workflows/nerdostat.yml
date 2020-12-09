@@ -12,7 +12,7 @@ jobs:
     # Set job outputs to values from filter step
     outputs:
       api: ${{ steps.filter.outputs.api }}
-      webapp_blazor: ${{ steps.filter.outputs.webapp_blazor }}
+      blazor: ${{ steps.filter.outputs.blazor }}
     steps:
     # needs checkout
     - uses: actions/checkout@v2
