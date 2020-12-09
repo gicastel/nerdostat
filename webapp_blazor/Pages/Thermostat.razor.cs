@@ -13,8 +13,8 @@ namespace BlazorClient.Pages
 
         protected APIMessage status { get; set; }
 
-        protected long? OverrideEndInMinutes { get; set; }
-        protected string OverrideUntil => (OverrideEndInMinutes.HasValue ? DateTime.Now.AddMinutes(Convert.ToDouble(OverrideEndInMinutes)).ToString("HH:mm dd/MM") : "--" );
+        protected int OverrideEndInMinutes { get; set; }
+        protected string OverrideUntil => (OverrideEndInMinutes > 0 ? DateTime.Now.AddMinutes(Convert.ToDouble(OverrideEndInMinutes)).ToString("HH:mm dd/MM") : "--" );
 
         protected string ConnectionIcon = ConnectionStatusIcon.OFF;
 
@@ -38,9 +38,7 @@ namespace BlazorClient.Pages
         protected void RefreshStatus()
         {
             if (status.OverrideEnd.HasValue)
-                this.OverrideEndInMinutes = status.OverrideEnd / 60000;
-            else
-                this.OverrideEndInMinutes = 0;
+                this.OverrideEndInMinutes = Convert.ToInt32(status.OverrideEnd / 60000);
 
             HeaterIcon = status.IsHeaterOn ? HeaterStatusIcon.ON : HeaterStatusIcon.OFF;
         }
@@ -48,18 +46,25 @@ namespace BlazorClient.Pages
 
         protected async Task TempUp()
         {
-            double newTemp = status.CurrentSetpoint + 0.5;
-            status = await _client.ModifySetPoint(newTemp, OverrideEndInMinutes / 60);
-            RefreshStatus();
+            await ModifySetpoint(0.5);
         }
 
         protected async Task TempDown()
         {
-            double newTemp = status.CurrentSetpoint - 0.5;
-            status = await _client.ModifySetPoint(newTemp, OverrideEndInMinutes / 60);
-            RefreshStatus();
-
+            await ModifySetpoint(-0.5);
         }
+
+        private async Task ModifySetpoint(double tempVariation)
+        {
+            double newTemp = status.CurrentSetpoint + tempVariation;
+            double? overrideHours = null;
+            if (OverrideEndInMinutes > 0)
+                overrideHours = OverrideEndInMinutes / 60;
+
+            status = await _client.ModifySetPoint(newTemp, overrideHours);
+            RefreshStatus();
+        }
+
 
         protected async Task ChangeSetpointDuration()
         {
