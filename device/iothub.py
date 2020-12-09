@@ -108,7 +108,7 @@ def sendMessage(temperature, humidity, setpoint, heatertime, heateractive, overr
         _led.on()
         print("Message sent.")
     except Exception as ex:
-        _client.disconnect()
+        # _client.disconnect()
         _client = None
         print (str(ex))
         _led.off()
