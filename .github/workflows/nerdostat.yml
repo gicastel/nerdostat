@@ -63,10 +63,13 @@ jobs:
     # if: ${{ needs.changes.outputs.blazor == 'true' }}
     runs-on: ubuntu-latest
     env:
-      STORAGE_SAS: ${{ secrets.BLAZOR_STORAGE_SAS  }}
-      API_ENDPOINT: ${{ secrets.BLAZOR_API_ENDPOINT  }}
-      API_KEY: ${{ secrets.BLAZOR_API_KEY  }}
-      POWERBI_DASHBOARD: ${{ secrets.BLAZOR_PBI_DASHBOARD  }}
+      STORAGE_SAS: ${{ secrets.BLAZOR_STORAGE_SAS }}
+      API_ENDPOINT: ${{ secrets.BLAZOR_API_ENDPOINT }}
+      API_KEY: ${{ secrets.BLAZOR_API_KEY }}
+      POWERBI_DASHBOARD: ${{ secrets.BLAZOR_PBI_DASHBOARD }}
+      CF_URL: ${{ secrets.CLOUDFLARE_API }}
+      CF_LOGIN: ${{ secrets.CLOUDFLARE_AUTH_MAIL }}
+      CF_KEY: ${{ secrets.CLOUDFLARE_AUTH_KEY  }}
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -102,3 +105,7 @@ jobs:
           source-path: './webapp_blazor/output/wwwroot'
           # A SAS URL for your storage account. (You should store this in a Secret.)
           sas-url: ${{ env.STORAGE_SAS }}
+
+      - name: Purge Cloudflare
+        run: >
+          curl -X POST "$CF_URL" -H "$CF_LOGIN" -H "$CF_KEY" -H "Content-Type: application/json" --data '{"purge_everything":true}'
