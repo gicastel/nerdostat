@@ -7,27 +7,27 @@ on:
      - pipelines
 
 jobs:
-  changes:
-    runs-on: ubuntu-latest
-    # Set job outputs to values from filter step
-    outputs:
-      api: ${{ steps.filter.outputs.api }}
-      blazor: ${{ steps.filter.outputs.blazor }}
-    steps:
-    # needs checkout
-    - uses: actions/checkout@v2
-    - uses: dorny/paths-filter@v2
-      id: filter
-      with:
-        filters: |
-          api:
-            - 'api/**'
-          blazor:
-            - 'webapp_blazor/**'
+  # changes:
+  #   runs-on: ubuntu-latest
+  #   # Set job outputs to values from filter step
+  #   outputs:
+  #     api: ${{ steps.filter.outputs.api }}
+  #     blazor: ${{ steps.filter.outputs.blazor }}
+  #   steps:
+  #   # needs checkout
+  #   - uses: actions/checkout@v2
+  #   - uses: dorny/paths-filter@v2
+  #     id: filter
+  #     with:
+  #       filters: |
+  #         api:
+  #           - 'api/**'
+  #         blazor:
+  #           - 'webapp_blazor/**'
               
   api:
-    needs: changes
-    if: ${{ needs.changes.outputs.api == 'true' }}
+    # needs: changes
+    # if: ${{ needs.changes.outputs.api == 'true' }}
     runs-on: ubuntu-latest
     env:
       API_FUNCTIONAPP_NAME: ${{ secrets.API_FUNCTIONAPP_NAME  }}
@@ -57,8 +57,8 @@ jobs:
           package: './api/output'
           
   blazor:
-    needs: changes
-    if: ${{ needs.changes.outputs.blazor == 'true' }}
+    # needs: changes
+    # if: ${{ needs.changes.outputs.blazor == 'true' }}
     runs-on: ubuntu-latest
     env:
       STORAGE_SAS: ${{ secrets.BLAZOR_STORAGE_SAS  }}
