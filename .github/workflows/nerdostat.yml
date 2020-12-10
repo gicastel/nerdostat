@@ -54,7 +54,7 @@ jobs:
         with:
           app-name: ${{ env.API_FUNCTIONAPP_NAME }}
           publish-profile: ${{ env.API_PUBLISH_PROFILE }}
-          package: ./output
+          package: './api/output'
           
   blazor:
     needs: changes
@@ -73,7 +73,7 @@ jobs:
       - name: Setup .NET SDK 5
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 5.x
+          dotnet-version: '5.x'
 
       - name: Blazor App Settings Variable Substitution
         uses: microsoft/variable-substitution@v1
@@ -95,6 +95,6 @@ jobs:
         uses: TravisSpomer/deploy-to-azure-storage@v1
         with:
           # The location of your built site files. (For example, "out".)
-          source-path: "./webapp_blazor/output/wwwroot"
+          source-path: ''./webapp_blazor/output/wwwroot'
           # A SAS URL for your storage account. (You should store this in a Secret.)
           sas-url: ${{ env.STORAGE_SAS }}
