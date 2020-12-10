@@ -59,7 +59,8 @@ namespace BlazorClient.Pages
             double newTemp = status.CurrentSetpoint + tempVariation;
             double? overrideHours = null;
             if (OverrideEndInMinutes > 0)
-                overrideHours = OverrideEndInMinutes / 60;
+                // round it up, since it's an int
+                overrideHours = (OverrideEndInMinutes / 60) + 1;
 
             status = await _client.ModifySetPoint(newTemp, overrideHours);
             RefreshStatus();
