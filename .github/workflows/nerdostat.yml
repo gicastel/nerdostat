@@ -40,14 +40,14 @@ jobs:
       - name: Setup .NET Core SDK 3.1.x
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '3.1.x'
+          dotnet-version: '2.1.x'
       
       - name: Resolve Project Dependencies Using Dotnet
         run: >
           pushd "./api/."
 
           dotnet build --configuration Release --output "./output"
-          
+
           popd
         shell: pwsh
       
@@ -77,7 +77,7 @@ jobs:
         with:
           dotnet-version: '5.0.x'
 
-      - name: Blazor App Settings Variable Substitution
+      - name: App Settings Variable Substitution
         uses: microsoft/variable-substitution@v1
         with:
           files: 'webapp_blazor/wwwroot/appsettings.json'
@@ -86,7 +86,7 @@ jobs:
           App.NerdostatAPIKey: ${{ env.API_KEY }}
           App.PowerBIDashboard: ${{ env.POWERBI_DASHBOARD }}
       
-      - name: Resolve Project Dependencies Using Dotnet
+      - name: Build App
         run: >
           pushd "./webapp_blazor/."
 
