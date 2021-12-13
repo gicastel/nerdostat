@@ -46,12 +46,9 @@ namespace Nerdostat.Device
         {
             if (IsSetpointOverridden())
                 return config.OverrideSetPoint;
-            // else
-            // {
-            //     config.Program.Get
-            // }
-            
-            return 0;
+            else
+                // program [monday] [08] [25 / 15 = 1]
+                return config.Program[(int)DateTime.Now.DayOfWeek][DateTime.Now.Hour][DateTime.Now.Minute / 15];
         }
     }
 }
