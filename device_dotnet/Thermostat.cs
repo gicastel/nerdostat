@@ -45,10 +45,17 @@ namespace Nerdostat.Device
         private decimal GetCurrentSetpoint()
         {
             if (IsSetpointOverridden())
-                return config.OverrideSetPoint;
+                return config.OverrideSetpoint;
             else
                 // program [monday] [08] [25 / 15 = 1]
                 return config.Program[(int)DateTime.Now.DayOfWeek][DateTime.Now.Hour][DateTime.Now.Minute / 15];
+        }
+
+        public void OverrideSetpoint(decimal setpoint, int? hours)
+        {
+            config.OverrideSetpoint = setpoint;
+            var setpointuntil = DateTime.Now.AddHours((double)(hours.HasValue ? hours : config.OverrideDefaultDuration));
+            config.OverrideUntil = (long)(setpointuntil - new DateTime(1970, 1, 1)).TotalSeconds;
         }
     }
 }

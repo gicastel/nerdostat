@@ -13,7 +13,7 @@ namespace Nerdostat.Device
         public Dictionary<int, Dictionary <int, Dictionary<int, decimal>>> Program { get; set; }
         public decimal Threshold { get; set; }
         public long? OverrideUntil { get; set; }
-        public int OverrideSetPoint { get; set; }
+        public decimal OverrideSetpoint { get; set; }
         public int OverrideDefaultDuration { get; set; }
         public long HeaterOnSince { get; set; }
         public decimal AwaySetpoint { get; set; }
