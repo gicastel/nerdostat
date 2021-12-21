@@ -33,4 +33,13 @@ namespace Nerdostat.Shared
         public double Setpoint { get; set; }
         public float? Hours { get; set; }
     }
+
+    public static class DeviceMethods
+    {
+        public static string ReadNow => "ReadNow";
+        public static string SetManualSetpoint => "SetManualSetPoint";
+        public static string ClearManualSetPoint => "ClearManualSetpoint";
+        public static string SetAwayOn => "SetAwayOn";
+        public static string SetAwayOff => "SetAwayOff";
+    }
 }

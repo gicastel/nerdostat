@@ -12,14 +12,51 @@ namespace Nerdostat.Device
         // Monday => 08 => 15 => 20.5 °C
         public Dictionary<int, Dictionary <int, Dictionary<int, decimal>>> Program { get; set; }
         public decimal Threshold { get; set; }
-        public long? OverrideUntil { get; set; }
-        public decimal OverrideSetpoint { get; set; }
+
+        [JsonProperty]
+        private long? OverrideUntilEpoch { get; set; }
+        public DateTime? OverrideUntil { 
+        get        
+            {
+                if(OverrideUntilEpoch.HasValue)
+                    return new DateTime(1970, 1, 1).AddSeconds(OverrideUntilEpoch.Value);
+                else
+                    return null;
+            }
+        set 
+            {
+                if (value.HasValue)
+                    this.OverrideUntilEpoch = (long)(value.Value - new DateTime(1970, 1, 1)).TotalSeconds;
+                else 
+                    this.OverrideUntilEpoch = null;
+            }
+        }
+        public decimal? OverrideSetpoint { get; set; }
         public int OverrideDefaultDuration { get; set; }
-        public long HeaterOnSince { get; set; }
+
+        private long? HeaterOnSinceEpoch { get; set; }
+        public DateTime? HeaterOnSince 
+        { 
+        get        
+            {
+                if(HeaterOnSinceEpoch.HasValue)
+                    return new DateTime(1970, 1, 1).AddSeconds(HeaterOnSinceEpoch.Value);
+                else
+                    return null;
+            }
+        set 
+            {
+                if (value.HasValue)
+                    this.HeaterOnSinceEpoch = (long)(value.Value - new DateTime(1970, 1, 1)).TotalSeconds;
+                else 
+                    this.HeaterOnSinceEpoch = null;
+            }
+        } 
+        
         public decimal AwaySetpoint { get; set; }
         public decimal NoFrostSetpoint { get; set; }
 
-        private const string configFilePath = "data/config.json";
+        private const string configFilePath = "config.json";
 
         private Configuration()
         {

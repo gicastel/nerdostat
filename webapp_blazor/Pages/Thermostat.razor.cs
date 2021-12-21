@@ -22,15 +22,17 @@ namespace BlazorClient.Pages
 
         protected override async Task OnInitializedAsync()
         {
-            try
+            var refresh = _client.GetData();
+            var timeout = Task.Delay(10*1000);
+            var first = await Task.WhenAny(refresh, timeout);
+            if (first == refresh)
             {
-                status = await _client.GetData();
+                status = refresh.Result;
                 ConnectionIcon = ConnectionStatusIcon.ON;
                 RefreshStatus();
             }
-            catch (Exception ex)
+            else
             {
-                // Pokemon Exception Handler (TM)
                 ConnectionIcon = ConnectionStatusIcon.OFF;
             }
         }

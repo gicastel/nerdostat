@@ -1,13 +1,19 @@
 ﻿using System;
+using System.Device.Gpio;
 using System.Threading.Tasks;
+using Iot.Device.DHTxx;
+using Nerdostat.Shared;
 
 namespace Nerdostat.Device
 {
-    class Thermostat
+    public class Thermostat
     {
-        private int HeaterRelayPin = 21;
-        private int StatusLedPin = 17;
-        private int DhtPin = 4;
+        private int HeaterRelayPinNumber = 21;
+        private int StatusLedPinNumber = 17;
+        private int DhtPinNumber = 4;
+
+        private OuputPin HeaterRelay;
+        private OuputPin StatusLed;
 
         private Configuration config { get; set; }
 
@@ -15,27 +21,80 @@ namespace Nerdostat.Device
         public static async Task<Thermostat> Initialize()
         {
             var data = await Configuration.LoadConfiguration();
+
             return new Thermostat(data);
         }
 
-        public async Task Refresh()
+        public async Task<APIMessage> Refresh()
         {
+            (double temperature, double relativeHumidity) = await ReadValues();
+            var setpoint = GetCurrentSetpoint();
+
+            var diff = Convert.ToDecimal(temperature) - setpoint;
             
+            if (Math.Abs(diff) > config.Threshold)
+            {
+                if (diff < 0)
+                    StartHeater();
+                else
+                    StopHeater();
+            }
+
+            var heaterTime = GetHeaterTime();
+            var heaterIsActive = HeaterRelay.IsOn();
+
+            int overrideSecondsRemaining = 0;
+            if (config.OverrideUntil.HasValue)
+                overrideSecondsRemaining = Convert.ToInt32((DateTime.Now - config.OverrideUntil.Value).TotalSeconds);
+
+            var save = config.SaveConfiguration();
+
+            var msg = new APIMessage(){
+                CurrentSetpoint = (double)setpoint,
+                HeaterOn = heaterTime,
+                Humidity = relativeHumidity,
+                Temperature = temperature,
+                Timestamp = DateTime.Now,
+                IsHeaterOn = heaterIsActive
+            };
+
+            return msg;
         }
 
-        // PRIVATES
+        public void OverrideSetpoint(decimal setpoint, int? hours)
+        {
+            config.OverrideSetpoint = setpoint;
+            var setpointuntil = DateTime.Now.AddHours(Convert.ToDouble(hours.HasValue ? hours : config.OverrideDefaultDuration));
+            config.OverrideUntil = setpointuntil;
+        }
+
+        public void ReturnToProgram()
+        {
+            config.OverrideSetpoint = null;
+            config.OverrideUntil = DateTime.Now.AddSeconds(-10);
+        }
+
+        public void SetAway()
+        {
+            config.OverrideSetpoint = config.AwaySetpoint;
+            config.OverrideUntil = DateTime.Now.AddYears(1);
+        }
+
+        #region Privates
 
         private Thermostat(Configuration _config)
         {
             config = _config;
+            
+            HeaterRelay = new OuputPin(HeaterRelayPinNumber);
+            StatusLed = new OuputPin(StatusLedPinNumber);
         }
 
         private bool IsSetpointOverridden()
         {
             if (config.OverrideUntil.HasValue)
             {
-                DateTime epoch = new DateTime(1970, 1, 1).AddSeconds(config.OverrideUntil.Value);
-                if (epoch >= DateTime.Now)
+                if (config.OverrideUntil.Value >= DateTime.Now)
                     return true;
             }
 
@@ -45,17 +104,64 @@ namespace Nerdostat.Device
         private decimal GetCurrentSetpoint()
         {
             if (IsSetpointOverridden())
-                return config.OverrideSetpoint;
+                return config.OverrideSetpoint.Value;
             else
                 // program [monday] [08] [25 / 15 = 1]
                 return config.Program[(int)DateTime.Now.DayOfWeek][DateTime.Now.Hour][DateTime.Now.Minute / 15];
         }
 
-        public void OverrideSetpoint(decimal setpoint, int? hours)
+        #endregion
+
+    
+        #region Hardware
+
+        private async Task<(double temperature, double relativeHumidity)> ReadValues()
         {
-            config.OverrideSetpoint = setpoint;
-            var setpointuntil = DateTime.Now.AddHours((double)(hours.HasValue ? hours : config.OverrideDefaultDuration));
-            config.OverrideUntil = (long)(setpointuntil - new DateTime(1970, 1, 1)).TotalSeconds;
+            using var controller = new GpioController();
+            var sensor = new Dht22(DhtPinNumber, PinNumberingScheme.Board, controller);
+            var temp = sensor.Temperature;
+            var hum = sensor.Humidity;
+            while(!sensor.IsLastReadSuccessful)
+            {
+                await Task.Delay(1000);
+                temp = sensor.Temperature;
+                hum = sensor.Humidity;
+            }
+            return (temp.DegreesCelsius, hum.Percent);
         }
+
+        private async Task<(double temperature, double relativeHumidity)> GenerateValues()
+        {
+            return (Random.Shared.Next(15, 25), Random.Shared.Next(30, 90));
+        }
+
+        private void StartHeater()
+        {
+
+            if (!config.HeaterOnSince.HasValue)
+                config.HeaterOnSince = DateTime.Now;
+        }
+
+        private void StopHeater()
+        {
+            HeaterRelay.TurnOff();
+            StatusLed.TurnOff();
+        }
+
+        private int GetHeaterTime()
+        {
+            int seconds = 0;
+            if (config.HeaterOnSince.HasValue)
+            {
+                var ts = DateTime.Now;
+                var delta = ts - config.HeaterOnSince.Value;
+                config.HeaterOnSince =  (HeaterRelay.IsOn()? ts : null);
+                seconds = Convert.ToInt32(delta.TotalSeconds);
+            }
+            return seconds;
+        }
+
+        #endregion
+
     }
 }
