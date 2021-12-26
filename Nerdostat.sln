@@ -14,6 +14,7 @@ EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		shared\Nerdostat.Shared.projitems*{22c4d92b-598e-47ca-93ce-7f65a54f1c33}*SharedItemsImports = 13
+		shared\Nerdostat.Shared.projitems*{78a79ad2-2d0b-475e-8f0e-ee9e548bcd62}*SharedItemsImports = 5
 		shared\Nerdostat.Shared.projitems*{c5da4a3e-92fe-4ed5-8998-16cd834e22df}*SharedItemsImports = 5
 		shared\Nerdostat.Shared.projitems*{c99c193e-c34d-4ce9-ac41-427828040934}*SharedItemsImports = 5
 	EndGlobalSection

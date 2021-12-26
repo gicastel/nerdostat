@@ -17,13 +17,15 @@ namespace Nerdostat.Device
 
         private Configuration config { get; set; }
 
-
-        public static async Task<Thermostat> Initialize()
+      
+        public Thermostat(Configuration _config)
         {
-            var data = await Configuration.LoadConfiguration();
-
-            return new Thermostat(data);
+            config = _config;
+            
+            HeaterRelay = new OuputPin(HeaterRelayPinNumber);
+            StatusLed = new OuputPin(StatusLedPinNumber);
         }
+        
 
         public async Task<APIMessage> Refresh()
         {
@@ -82,13 +84,6 @@ namespace Nerdostat.Device
 
         #region Privates
 
-        private Thermostat(Configuration _config)
-        {
-            config = _config;
-            
-            HeaterRelay = new OuputPin(HeaterRelayPinNumber);
-            StatusLed = new OuputPin(StatusLedPinNumber);
-        }
 
         private bool IsSetpointOverridden()
         {
@@ -106,8 +101,14 @@ namespace Nerdostat.Device
             if (IsSetpointOverridden())
                 return config.OverrideSetpoint.Value;
             else
+            {
                 // program [monday] [08] [25 / 15 = 1]
-                return config.Program[(int)DateTime.Now.DayOfWeek][DateTime.Now.Hour][DateTime.Now.Minute / 15];
+                int dow = (int)DateTime.Now.DayOfWeek;
+                int hour = DateTime.Now.Hour;
+                int minute = DateTime.Now.Minute;
+                minute -= minute % 15;
+                return config.Program[dow][hour][minute];
+            }
         }
 
         #endregion
@@ -117,6 +118,9 @@ namespace Nerdostat.Device
 
         private async Task<(double temperature, double relativeHumidity)> ReadValues()
         {
+#if DEBUG
+            return await GenerateValues();
+#endif
             using var controller = new GpioController();
             var sensor = new Dht22(DhtPinNumber, PinNumberingScheme.Board, controller);
             var temp = sensor.Temperature;

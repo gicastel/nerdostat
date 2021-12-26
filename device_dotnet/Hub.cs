@@ -2,6 +2,7 @@ using System;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Azure.Amqp.Framing;
 using Microsoft.Azure.Devices.Client;
 using Nerdostat.Shared;
 using Newtonsoft.Json;
@@ -14,22 +15,25 @@ namespace Nerdostat.Device
 
         private OuputPin AzureStatusLed;
 
-        private readonly Thermostat _thermo;
+        private readonly Thermostat thermo;
 
         private DeviceClient client;
 
-        public static async Task<Hub> Initialize(string connectionString, Thermostat thermo)
+        private bool IsTestDevice;
+
+        public static async Task<Hub> Initialize(string connectionString, bool? testDevice, Thermostat thermo)
         {
-            var hub = new Hub(connectionString, thermo);
+            var hub = new Hub(connectionString, testDevice, thermo);
             await hub.ConfigureCallbacks();
 
             return hub;
         }
 
-        private Hub(string connectionString, Thermostat thermo)
+        private Hub(string connectionString, bool? _testDevice, Thermostat _thermo)
         {
-            client = client ?? DeviceClient.CreateFromConnectionString(connectionString);
-            _thermo = thermo;
+            client ??= DeviceClient.CreateFromConnectionString(connectionString);
+            IsTestDevice = _testDevice ?? false;
+            this.thermo = _thermo;
             AzureStatusLed = new OuputPin(AzureStatusPinNumber);
         }
 
@@ -63,7 +67,7 @@ namespace Nerdostat.Device
 
         private async Task<MethodResponse> RefreshThermoData(MethodRequest methodRequest, object userContext)
         {
-            var thermoData = await _thermo.Refresh();
+            var thermoData = await thermo.Refresh();
             var message = new APIMessage(){
                 Timestamp = DateTime.Now,
                 Temperature = thermoData.Temperature,
@@ -82,7 +86,7 @@ namespace Nerdostat.Device
         private async Task<MethodResponse> OverrideSetpoint(MethodRequest methodRequest, object userContext)
         {
             var input = JsonConvert.DeserializeObject<SetPointMessage>(methodRequest.DataAsJson);
-            _thermo.OverrideSetpoint(
+            thermo.OverrideSetpoint(
                 Convert.ToDecimal(input.Setpoint),
                 Convert.ToInt32(input.Hours));
             return await RefreshThermoData(methodRequest, userContext);
@@ -90,13 +94,13 @@ namespace Nerdostat.Device
 
         private async Task<MethodResponse> ClearSetpoint(MethodRequest methodRequest, object userContext)
         {
-            _thermo.ReturnToProgram();
+            thermo.ReturnToProgram();
             return await RefreshThermoData(methodRequest, userContext);
         }
 
         private async Task<MethodResponse> SetAwayOn(MethodRequest methodRequest, object userContext)
         {
-            _thermo.SetAway();
+            thermo.SetAway();
             return await RefreshThermoData(methodRequest, userContext);
         }
 
@@ -106,6 +110,10 @@ namespace Nerdostat.Device
             var blink = AzureStatusLed.Blink((decimal)0.1, (decimal)0.1, cts.Token);
             var messageBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(message));
             var iotMessage = new Message(messageBytes);
+
+            if (IsTestDevice)
+                iotMessage.Properties.Add("testDevice", "true");
+
             try
             {
                 await client.SendEventAsync(iotMessage);

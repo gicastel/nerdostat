@@ -55,6 +55,8 @@ namespace Nerdostat.Device
         
         public decimal AwaySetpoint { get; set; }
         public decimal NoFrostSetpoint { get; set; }
+        public string IotHubConnectionString { get;set; }
+        public bool TestDevice { get; set; }
 
         private const string configFilePath = "config.json";
 
@@ -63,10 +65,10 @@ namespace Nerdostat.Device
             
         }
 
-        public static async Task<Configuration> LoadConfiguration()
+        public static async Task<Configuration> LoadConfiguration(bool regenConfig)
         {
             FileInfo cfgFile = new FileInfo(configFilePath);
-            if (!cfgFile.Exists)
+            if (!cfgFile.Exists || regenConfig)
             {
                 Configuration dflt = new();
                 dflt.Program = CreateDefaultProgram();
@@ -78,7 +80,7 @@ namespace Nerdostat.Device
 
                 string content = JsonConvert.SerializeObject(dflt);
 
-                using(StreamWriter wr = new StreamWriter(configFilePath))
+                using(StreamWriter wr = new StreamWriter(configFilePath, false))
                 {
                     await wr.WriteAsync(content);
                 }
@@ -102,7 +104,7 @@ namespace Nerdostat.Device
         {
             FileInfo cfgFile = new FileInfo(configFilePath);
             string content = JsonConvert.SerializeObject(this);
-            using(StreamWriter wr = new StreamWriter(configFilePath))
+            using(StreamWriter wr = new StreamWriter(configFilePath, false))
             {
                 await wr.WriteAsync(content);
             }

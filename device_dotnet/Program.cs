@@ -10,8 +10,13 @@ namespace Nerdostat.Device
         {
             Console.WriteLine("Starting...");
 
-            var thermo = await Thermostat.Initialize();
-            var hub = await Hub.Initialize("", thermo);
+            bool regenConfig = false;
+            if (args.Length > 0 && args[0] == "regenConfig")
+                regenConfig = true;
+
+            var config = await Configuration.LoadConfiguration(regenConfig);
+            var thermo = new Thermostat(config);
+            var hub = await Hub.Initialize(config.IotHubConnectionString, config.TestDevice, thermo);
 
             while (true)
             {
