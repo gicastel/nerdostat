@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.Amqp.Framing;
 using Microsoft.Azure.Devices.Client;
+using Microsoft.Azure.Devices.Shared;
 using Nerdostat.Shared;
 using Newtonsoft.Json;
 
@@ -19,8 +20,11 @@ namespace Nerdostat.Device
 
         private DeviceClient client;
 
+        private readonly string ConnectionString;
+
         private bool IsTestDevice;
 
+        TransportType ttype = TransportType.Mqtt;
         public static async Task<Hub> Initialize(string connectionString, bool? testDevice, Thermostat thermo)
         {
             var hub = new Hub(connectionString, testDevice, thermo);
@@ -31,10 +35,40 @@ namespace Nerdostat.Device
 
         private Hub(string connectionString, bool? _testDevice, Thermostat _thermo)
         {
-            client ??= DeviceClient.CreateFromConnectionString(connectionString);
+            ConnectionString = connectionString;
+            var options = new ClientOptions
+            {
+                SdkAssignsMessageId = SdkAssignsMessageId.WhenUnset,
+            };
+            client ??= DeviceClient.CreateFromConnectionString(ConnectionString, ttype, options);
+            client.SetConnectionStatusChangesHandler((status, reason) => ConnectionChanged(status, reason));
             IsTestDevice = _testDevice ?? false;
             this.thermo = _thermo;
             AzureStatusLed = new OuputPin(AzureStatusPinNumber);
+        }
+
+        private async void ConnectionChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
+        {
+            switch(status)
+            {
+                case ConnectionStatus.Connected:
+                    Console.WriteLine($"{status} : {reason}");
+                    break;
+                case ConnectionStatus.Disconnected_Retrying:
+                    Console.WriteLine($"{status} : {reason}");
+                    break;
+                case ConnectionStatus.Disconnected:
+                    Console.WriteLine($"{status} : {reason}");
+                    client.Dispose();
+                    var options = new ClientOptions
+                    {
+                        SdkAssignsMessageId = SdkAssignsMessageId.WhenUnset,
+                    };
+                    client = DeviceClient.CreateFromConnectionString(ConnectionString, ttype, options);
+                    client.SetConnectionStatusChangesHandler((status, reason) => ConnectionChanged(status, reason));
+                    ConfigureCallbacks().GetAwaiter().GetResult();
+                    break;
+            }
         }
 
         private async Task ConfigureCallbacks()
@@ -109,13 +143,18 @@ namespace Nerdostat.Device
             var cts = new CancellationTokenSource();
             var blink = AzureStatusLed.Blink((decimal)0.1, (decimal)0.1, cts.Token);
             var messageBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(message));
-            var iotMessage = new Message(messageBytes);
+            var iotMessage = new Message(messageBytes)
+            {
+                ContentEncoding = "utf-8",
+                ContentType = "application/json"
+            };
 
             if (IsTestDevice)
                 iotMessage.Properties.Add("testDevice", "true");
 
             try
             {
+                Console.WriteLine(JsonConvert.SerializeObject(message));
                 await client.SendEventAsync(iotMessage);
                 cts.Cancel();
                 AzureStatusLed.TurnOn();
