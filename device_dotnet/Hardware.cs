@@ -18,7 +18,7 @@ namespace Nerdostat.Device
 
         public void TurnOn()
         {
-            using var controller = new GpioController(PinNumberingScheme.Board);
+            using var controller = new GpioController();
             controller.OpenPin(Pin);
             controller.SetPinMode(Pin, PinMode.Output);
             
@@ -29,7 +29,7 @@ namespace Nerdostat.Device
         public void TurnOff()
         {
 
-            using var controller = new GpioController(PinNumberingScheme.Board);
+            using var controller = new GpioController();
             controller.OpenPin(Pin);
             controller.SetPinMode(Pin, PinMode.Output);
 
@@ -39,7 +39,7 @@ namespace Nerdostat.Device
 
         public async Task Blink(decimal OnDuration, decimal OffDuration, CancellationToken cts)
         {
-            using var controller = new GpioController(PinNumberingScheme.Board);
+            using var controller = new GpioController();
             controller.OpenPin(Pin);
             controller.SetPinMode(Pin, PinMode.Output);
 
