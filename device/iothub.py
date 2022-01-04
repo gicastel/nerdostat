@@ -42,35 +42,35 @@ _callbackSelector = {
 def iothub_client_init():
     # Create an IoT Hub client
     global _client
+    _client = IoTHubDeviceClient.create_from_connection_string(CONNECTION_STRING, auto_connect=True)
     try:
-        _client = IoTHubDeviceClient.create_from_connection_string(CONNECTION_STRING)
+
+        def device_method_handler(method_request):
+            _led.blink(on_time=0.1, off_time=0.1)
+            print (
+                "\nMethod callback called with:\nmethodName = {method_name}\npayload = {payload}".format(
+                    method_name=method_request.name,
+                    payload=method_request.payload
+                ) , flush=True
+            )
+
+            cb = _callbackSelector.get(method_request.name, lambda _: ({"Response" : "Not Defined"}, 404))
+
+            response_payload, response_status = cb(method_request.payload)
+
+            method_response = MethodResponse.create_from_method_request(method_request, response_status, payload=response_payload)
+            print("\nResponse:\nPayload: {pl}\nStatus: {st}".format(pl=response_payload, st=response_status), flush=True)
+            _client.send_method_response(method_response)
+            _led.on()
+
+        _client.on_method_request_received = device_method_handler
+
         _client.connect()
-        device_method_thread = threading.Thread(target=_deviceMethodListener, args=(_client,))
-        device_method_thread.daemon = True
-        device_method_thread.start()
         _led.on()
     except:
+        _client.shutdown()
+        _client = None
         _led.off()
-
-def _deviceMethodListener(device_client):
-    while True:
-        method_request = device_client.receive_method_request()
-        _led.blink(on_time=0.1, off_time=0.1)
-        print (
-            "\nMethod callback called with:\nmethodName = {method_name}\npayload = {payload}".format(
-                method_name=method_request.name,
-                payload=method_request.payload
-            ) , flush=True
-        )
-
-        cb = _callbackSelector.get(method_request.name, lambda _: ({"Response" : "Not Defined"}, 404))
-
-        response_payload, response_status = cb(method_request.payload)
-
-        method_response = MethodResponse(method_request.request_id, response_status, payload=response_payload)
-        print("\nResponse:\nPayload: {pl}\nStatus: {st}".format(pl=response_payload, st=response_status), flush=True)
-        device_client.send_method_response(method_response)
-        _led.on()
 
 MSG_TXT = """{{"Timestamp" : "{timestamp}", 
                "Temperature": {temperature}, 
@@ -99,6 +99,8 @@ def sendMessage(temperature, humidity, setpoint, heatertime, heateractive, overr
     msg_txt = _generateMessageJson(temperature, humidity, setpoint, heatertime, heateractive, overrideEnd)
     message = Message(msg_txt)
 
+    message.custom_properties['testDevice'] = 'true'
+
     print( "Sending message: {}".format(message))
     if _client is None:
         iothub_client_init()
@@ -108,7 +110,7 @@ def sendMessage(temperature, humidity, setpoint, heatertime, heateractive, overr
         _led.on()
         print("Message sent.")
     except Exception as ex:
-        # _client.disconnect()
+        _client.shutdown()
         _client = None
         print (str(ex))
         _led.off()
