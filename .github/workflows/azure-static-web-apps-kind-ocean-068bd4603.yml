@@ -18,6 +18,14 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
+      - name: App Settings Variable Substitution
+        uses: microsoft/variable-substitution@v1
+        with:
+          files: 'webapp_blazor/wwwroot/appsettings.json'
+        env:
+          App.NerdostatAPIEndpoint: ${{ secrets.BLAZOR_API_ENDPOINT }}
+          App.NerdostatAPIKey: ${{ secrets.BLAZOR_API_KEY }}
+          App.PowerBIDashboard: ${{ secrets.BLAZOR_PBI_DASHBOARD }}
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
