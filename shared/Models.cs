@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Nerdostat.Shared
 {
@@ -28,9 +29,25 @@ namespace Nerdostat.Shared
         public string payload { get; set; }
     }
 
+    public class ProgramMessage : Dictionary<int, Dictionary<int, Dictionary<int, decimal>>>
+    {
+
+    }
+
     public class SetPointMessage
     {
         public double Setpoint { get; set; }
         public float? Hours { get; set; }
+    }
+
+    public enum PyWeekDays
+    {
+        Monday,
+        Tuesday,
+        Wednesday,
+        Thursday,
+        Friday,
+        Saturday,
+        Sunday
     }
 }

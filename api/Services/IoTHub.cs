@@ -1,15 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Azure.Devices;
+﻿using Microsoft.Azure.Devices;
+using Nerdostat.Shared;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace API.Services
 {
     public static class IoTHub
     {
-        private const string deviceID = "nerdostatSym";
+        private static string deviceID => System.Environment.GetEnvironmentVariable("NerdostatDeviceId");
 
         private const int Timeout = 15;
 
@@ -23,7 +23,6 @@ namespace API.Services
         public static async Task<CloudToDeviceMethodResult> ReadNow()
         {
             var methodInvocation = new CloudToDeviceMethod("ReadNow") { ResponseTimeout = TimeSpan.FromSeconds(Timeout) };
-            methodInvocation.SetPayloadJson("10");
 
             // Invoke the direct method asynchronously and get the response from the simulated device.
             return await Client.InvokeDeviceMethodAsync(deviceID, methodInvocation);
@@ -60,6 +59,28 @@ namespace API.Services
         public static async Task<CloudToDeviceMethodResult> ClearManualSetpoint()
         {
             var methodInvocation = new CloudToDeviceMethod("ClearManualSetPoint") { ResponseTimeout = TimeSpan.FromSeconds(Timeout) };
+
+            // Invoke the direct method asynchronously and get the response from the simulated device.
+            return await Client.InvokeDeviceMethodAsync(deviceID, methodInvocation);
+        }
+
+        public static async Task<CloudToDeviceMethodResult> GetProgram()
+        {
+            var methodInvocation = new CloudToDeviceMethod("GetProgram") { ResponseTimeout = TimeSpan.FromSeconds(Timeout) };
+
+            // Invoke the direct method asynchronously and get the response from the simulated device.
+            return await Client.InvokeDeviceMethodAsync(deviceID, methodInvocation);
+        }
+
+        public static async Task<CloudToDeviceMethodResult> SetProgram(ProgramMessage programMessage)
+        {
+            var methodInvocation = new CloudToDeviceMethod("SetProgram") { ResponseTimeout = TimeSpan.FromSeconds(Timeout) };
+            //var payload = new { program = programMessage };
+            JObject payload = new JObject(
+                new JProperty("program", JObject.FromObject(programMessage))
+                );
+
+            methodInvocation.SetPayloadJson(payload.ToString());
 
             // Invoke the direct method asynchronously and get the response from the simulated device.
             return await Client.InvokeDeviceMethodAsync(deviceID, methodInvocation);

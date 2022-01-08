@@ -18,6 +18,9 @@ namespace BlazorClient.Services
         Task<APIMessage> ModifySetPoint(double newTempValue, double? duration);
         Task<APIMessage> ResetSetPoint();
 
+        Task<ProgramMessage> GetProgram();
+        Task<ProgramMessage> UpdateProgram(ProgramMessage program);
+
     }
 
     public class APIClient : IAPIClient
@@ -57,6 +60,22 @@ namespace BlazorClient.Services
             var response = await _client.PostAsync(_client.BaseAddress + "setpoint/clear", null);
             var msg = await response.Content.ReadFromJsonAsync<APIResponse>();
             var payload = JsonConvert.DeserializeObject<APIMessage>(msg.payload);
+            return payload;
+        }
+
+        public async Task<ProgramMessage> GetProgram()
+        {
+            var response = await _client.GetAsync(_client.BaseAddress + "program");
+            var msg = await response.Content.ReadFromJsonAsync<APIResponse>();
+            var payload = JsonConvert.DeserializeObject<ProgramMessage>(msg.payload);
+            return payload;
+        }
+
+        public async Task<ProgramMessage> UpdateProgram(ProgramMessage program)
+        {
+            var response = await _client.PostAsJsonAsync(_client.BaseAddress + "program", program);
+            var msg = await response.Content.ReadFromJsonAsync<APIResponse>();
+            var payload = JsonConvert.DeserializeObject<ProgramMessage>(msg.payload);
             return payload;
         }
 
