@@ -36,9 +36,9 @@ def _callback_GetProgram(_):
     return jsonpickle.encode(program), 200
 
 def _callback_SetProgram(pl):
-    program = pl.get("Program")
+    program = pl.get("program")
     thermo._config.PROGRAM = program
-    return jsonpickle.encode(program), 200
+    return jsonpickle.encode(thermo._config.PROGRAM), 200
 
 _callbackSelector = {
     "ReadNow" : _callback_ReadNow,
