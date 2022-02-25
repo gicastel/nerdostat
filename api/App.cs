@@ -39,7 +39,7 @@ namespace API
             {
                 var request = await req.Content.ReadAsStringAsync();
                 var requestData = JsonConvert.DeserializeObject<SetPointMessage>(request);
-                
+
                 return new OkObjectResult(await IoTHub.SetManualSetpoint(requestData.Setpoint, requestData.Hours));
             }
             catch (Exception ex)
@@ -112,6 +112,25 @@ namespace API
         public static async Task<IActionResult> SetProgram(
   [HttpTrigger(AuthorizationLevel.Function, "post", Route = "program")] HttpRequestMessage req,
   ILogger log)
+        {
+            try
+            {
+                var request = await req.Content.ReadAsStringAsync();
+                var requestData = JsonConvert.DeserializeObject<ProgramMessage>(request);
+
+                return new OkObjectResult(await IoTHub.SetProgram(requestData));
+            }
+            catch (Exception ex)
+            {
+                return new BadRequestObjectResult(ex);
+            }
+        }
+
+
+        [FunctionName(nameof(PatchProgram))]
+        public static async Task<IActionResult> PatchProgram(
+    [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "program")] HttpRequestMessage req,
+    ILogger log)
         {
             try
             {
