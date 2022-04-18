@@ -11,43 +11,44 @@ namespace Nerdostat.Device
         private bool On;
         private int Pin;
 
+        private GpioController Controller;
+
         public OuputPin(int pinNumber)
         {
+            if (Controller is null)
+                Controller = new GpioController();
+
             this.Pin = pinNumber;
         }
 
         public void TurnOn()
         {
-            using var controller = new GpioController();
-            controller.OpenPin(Pin);
-            controller.SetPinMode(Pin, PinMode.Output);
+            Controller.OpenPin(Pin);
+            Controller.SetPinMode(Pin, PinMode.Output);
             
-            controller.Write(Pin, PinValue.High);
+            Controller.Write(Pin, PinValue.High);
             On = true;
         }
 
         public void TurnOff()
         {
+            Controller.OpenPin(Pin);
+            Controller.SetPinMode(Pin, PinMode.Output);
 
-            using var controller = new GpioController();
-            controller.OpenPin(Pin);
-            controller.SetPinMode(Pin, PinMode.Output);
-
-            controller.Write(Pin, PinValue.Low);
+            Controller.Write(Pin, PinValue.Low);
             On = false;
         }
 
         public async Task Blink(decimal OnDuration, decimal OffDuration, CancellationToken cts)
         {
-            using var controller = new GpioController();
-            controller.OpenPin(Pin);
-            controller.SetPinMode(Pin, PinMode.Output);
+            Controller.OpenPin(Pin);
+            Controller.SetPinMode(Pin, PinMode.Output);
 
             while (!cts.IsCancellationRequested)
             {
-                controller.Write(Pin, PinValue.High);
+                Controller.Write(Pin, PinValue.High);
                 await Task.Delay(Convert.ToInt32(OnDuration * 1000));
-                controller.Write(Pin, PinValue.Low);
+                Controller.Write(Pin, PinValue.Low);
                 await Task.Delay(Convert.ToInt32(OffDuration * 1000));
             }
             On = false;
