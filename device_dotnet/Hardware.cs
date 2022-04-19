@@ -11,38 +11,34 @@ namespace Nerdostat.Device
         private bool On;
         private int Pin;
 
-        private GpioController Controller;
-
         public OuputPin(int pinNumber)
         {
-            if (Controller is null)
-                Controller = new GpioController();
-
             this.Pin = pinNumber;
         }
 
         public void TurnOn()
         {
+            using var Controller = new GpioController();
             Controller.OpenPin(Pin);
             Controller.SetPinMode(Pin, PinMode.Output);
             
             Controller.Write(Pin, PinValue.High);
-            Controller.ClosePin(Pin);
             On = true;
         }
 
         public void TurnOff()
         {
+            using var Controller = new GpioController();
             Controller.OpenPin(Pin);
             Controller.SetPinMode(Pin, PinMode.Output);
 
             Controller.Write(Pin, PinValue.Low);
-            Controller.ClosePin(Pin);
             On = false;
         }
 
         public async Task Blink(decimal OnDuration, decimal OffDuration, CancellationToken cts)
         {
+            using var Controller = new GpioController();
             Controller.OpenPin(Pin);
             Controller.SetPinMode(Pin, PinMode.Output);
 
@@ -53,7 +49,8 @@ namespace Nerdostat.Device
                 Controller.Write(Pin, PinValue.Low);
                 await Task.Delay(Convert.ToInt32(OffDuration * 1000));
             }
-            Controller.ClosePin(Pin);
+            Controller.Write(Pin, PinValue.Low);
+
             On = false;
         }
 

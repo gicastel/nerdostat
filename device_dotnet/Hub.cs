@@ -157,10 +157,12 @@ namespace Nerdostat.Device
                 Console.WriteLine(JsonConvert.SerializeObject(message));
                 await client.SendEventAsync(iotMessage);
                 cts.Cancel();
+                await blink;
                 AzureStatusLed.TurnOn();
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine(ex.ToString());
                 cts.Cancel();
                 AzureStatusLed.TurnOff();
             }
