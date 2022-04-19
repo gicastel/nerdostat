@@ -27,6 +27,7 @@ namespace Nerdostat.Device
             Controller.SetPinMode(Pin, PinMode.Output);
             
             Controller.Write(Pin, PinValue.High);
+            Controller.ClosePin(Pin);
             On = true;
         }
 
@@ -36,6 +37,7 @@ namespace Nerdostat.Device
             Controller.SetPinMode(Pin, PinMode.Output);
 
             Controller.Write(Pin, PinValue.Low);
+            Controller.ClosePin(Pin);
             On = false;
         }
 
@@ -51,6 +53,7 @@ namespace Nerdostat.Device
                 Controller.Write(Pin, PinValue.Low);
                 await Task.Delay(Convert.ToInt32(OffDuration * 1000));
             }
+            Controller.ClosePin(Pin);
             On = false;
         }
 
