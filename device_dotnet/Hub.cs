@@ -1,12 +1,12 @@
-using System;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Azure.Amqp.Framing;
 using Microsoft.Azure.Devices.Client;
 using Microsoft.Azure.Devices.Shared;
 using Nerdostat.Shared;
 using Newtonsoft.Json;
+using System;
+using System.Diagnostics;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Nerdostat.Device
 {
@@ -47,18 +47,18 @@ namespace Nerdostat.Device
             AzureStatusLed = new OuputPin(AzureStatusPinNumber);
         }
 
-        private async void ConnectionChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
+        private void ConnectionChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
             switch(status)
             {
                 case ConnectionStatus.Connected:
-                    Console.WriteLine($"{status} : {reason}");
+                    Trace.TraceInformation($"{status} : {reason}");
                     break;
                 case ConnectionStatus.Disconnected_Retrying:
-                    Console.WriteLine($"{status} : {reason}");
+                    Trace.TraceWarning($"{status} : {reason}");
                     break;
                 case ConnectionStatus.Disconnected:
-                    Console.WriteLine($"{status} : {reason}");
+                    Trace.TraceWarning($"{status} : {reason}");
                     client.Dispose();
                     var options = new ClientOptions
                     {
@@ -101,6 +101,7 @@ namespace Nerdostat.Device
 
         private async Task<MethodResponse> RefreshThermoData(MethodRequest methodRequest, object userContext)
         {
+           Trace.TraceInformation(DeviceMethods.ReadNow);
             var thermoData = await thermo.Refresh();
             var message = new APIMessage(){
                 Timestamp = DateTime.Now,
@@ -108,17 +109,20 @@ namespace Nerdostat.Device
                 Humidity = thermoData.Humidity,
                 CurrentSetpoint = thermoData.CurrentSetpoint,
                 HeaterOn = Convert.ToInt64(thermoData.HeaterOn),
-                IsHeaterOn = false,
-                OverrideEnd = 0
+                IsHeaterOn = thermoData.IsHeaterOn,
+                OverrideEnd = thermoData.OverrideEnd
             };
 
             var stringData = JsonConvert.SerializeObject(message);
+            Trace.TraceInformation(stringData);
             var byteData = Encoding.UTF8.GetBytes(stringData);
             return new MethodResponse(byteData, 200);
         }
 
         private async Task<MethodResponse> OverrideSetpoint(MethodRequest methodRequest, object userContext)
         {
+            Trace.TraceInformation(DeviceMethods.SetManualSetpoint);
+
             var input = JsonConvert.DeserializeObject<SetPointMessage>(methodRequest.DataAsJson);
             thermo.OverrideSetpoint(
                 Convert.ToDecimal(input.Setpoint),
@@ -128,12 +132,16 @@ namespace Nerdostat.Device
 
         private async Task<MethodResponse> ClearSetpoint(MethodRequest methodRequest, object userContext)
         {
+            Trace.TraceInformation(DeviceMethods.ClearManualSetPoint);
+
             thermo.ReturnToProgram();
             return await RefreshThermoData(methodRequest, userContext);
         }
 
         private async Task<MethodResponse> SetAwayOn(MethodRequest methodRequest, object userContext)
         {
+            Trace.TraceInformation(DeviceMethods.SetAwayOn);
+
             thermo.SetAway();
             return await RefreshThermoData(methodRequest, userContext);
         }
@@ -154,7 +162,7 @@ namespace Nerdostat.Device
 
             try
             {
-                Console.WriteLine(JsonConvert.SerializeObject(message));
+                Trace.TraceInformation(JsonConvert.SerializeObject(message));
                 await client.SendEventAsync(iotMessage);
                 cts.Cancel();
                 await blink;
@@ -162,7 +170,7 @@ namespace Nerdostat.Device
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+               Trace.TraceError(ex.ToString());
                 cts.Cancel();
                 AzureStatusLed.TurnOff();
             }

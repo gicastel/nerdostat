@@ -1,8 +1,9 @@
-﻿using System;
+﻿using Iot.Device.DHTxx;
+using Microsoft.Extensions.Logging;
+using Nerdostat.Shared;
+using System;
 using System.Device.Gpio;
 using System.Threading.Tasks;
-using Iot.Device.DHTxx;
-using Nerdostat.Shared;
 
 namespace Nerdostat.Device
 {
@@ -15,12 +16,11 @@ namespace Nerdostat.Device
         private OuputPin HeaterRelay;
         private OuputPin StatusLed;
 
-        private Configuration config { get; set; }
-
-      
+        private Configuration Config { get; set; }
+     
         public Thermostat(Configuration _config)
         {
-            config = _config;
+            Config = _config;
             
             HeaterRelay = new OuputPin(HeaterRelayPinNumber);
             StatusLed = new OuputPin(StatusLedPinNumber);
@@ -34,22 +34,22 @@ namespace Nerdostat.Device
 
             var diff = Convert.ToDecimal(temperature) - setpoint;
             
-            if (Math.Abs(diff) > config.Threshold)
+            if (Math.Abs(diff) > Config.Threshold)
             {
                 if (diff < 0)
-                    StartHeater();
+                    StartHeating();
                 else
-                    StopHeater();
+                    StopHeating();
             }
 
-            var heaterTime = GetHeaterTime();
+            var heaterTime = GetHeatingTime();
             var heaterIsActive = HeaterRelay.IsOn();
 
             int overrideSecondsRemaining = 0;
-            if (config.OverrideUntil.HasValue)
-                overrideSecondsRemaining = Convert.ToInt32((DateTime.Now - config.OverrideUntil.Value).TotalSeconds);
+            if (Config.OverrideUntil.HasValue)
+                overrideSecondsRemaining = Convert.ToInt32((Config.OverrideUntil.Value - DateTime.Now).TotalSeconds);
 
-            var save = config.SaveConfiguration();
+            await Config.SaveConfiguration();
 
             var msg = new APIMessage(){
                 CurrentSetpoint = (double)setpoint,
@@ -57,7 +57,8 @@ namespace Nerdostat.Device
                 Humidity = relativeHumidity,
                 Temperature = temperature,
                 Timestamp = DateTime.Now,
-                IsHeaterOn = heaterIsActive
+                IsHeaterOn = heaterIsActive,
+                OverrideEnd = overrideSecondsRemaining
             };
 
             return msg;
@@ -65,21 +66,21 @@ namespace Nerdostat.Device
 
         public void OverrideSetpoint(decimal setpoint, int? hours)
         {
-            config.OverrideSetpoint = setpoint;
-            var setpointuntil = DateTime.Now.AddHours(Convert.ToDouble(hours.HasValue ? hours : config.OverrideDefaultDuration));
-            config.OverrideUntil = setpointuntil;
+            Config.OverrideSetpoint = setpoint;
+            var setpointuntil = DateTime.Now.AddHours(Convert.ToDouble(hours.HasValue ? hours : Config.OverrideDefaultDuration));
+            Config.OverrideUntil = setpointuntil;
         }
 
         public void ReturnToProgram()
         {
-            config.OverrideSetpoint = null;
-            config.OverrideUntil = DateTime.Now.AddSeconds(-10);
+            Config.OverrideSetpoint = null;
+            Config.OverrideUntil = DateTime.Now.AddSeconds(-10);
         }
 
         public void SetAway()
         {
-            config.OverrideSetpoint = config.AwaySetpoint;
-            config.OverrideUntil = DateTime.Now.AddYears(1);
+            Config.OverrideSetpoint = Config.AwaySetpoint;
+            Config.OverrideUntil = DateTime.Now.AddYears(1);
         }
 
         #region Privates
@@ -87,9 +88,9 @@ namespace Nerdostat.Device
 
         private bool IsSetpointOverridden()
         {
-            if (config.OverrideUntil.HasValue)
+            if (Config.OverrideUntil.HasValue)
             {
-                if (config.OverrideUntil.Value >= DateTime.Now)
+                if (Config.OverrideUntil.Value >= DateTime.Now)
                     return true;
             }
 
@@ -99,7 +100,7 @@ namespace Nerdostat.Device
         private decimal GetCurrentSetpoint()
         {
             if (IsSetpointOverridden())
-                return config.OverrideSetpoint.Value;
+                return Config.OverrideSetpoint.Value;
             else
             {
                 // program [monday] [08] [25 / 15 = 1]
@@ -107,7 +108,7 @@ namespace Nerdostat.Device
                 int hour = DateTime.Now.Hour;
                 int minute = DateTime.Now.Minute;
                 minute -= minute % 15;
-                return config.Program[dow][hour][minute];
+                return Config.Program[dow][hour][minute];
             }
         }
 
@@ -134,32 +135,35 @@ namespace Nerdostat.Device
             return (temp.DegreesCelsius, hum.Percent);
         }
 
-        private async Task<(double temperature, double relativeHumidity)> GenerateValues()
+        private static async ValueTask<(double temperature, double relativeHumidity)> GenerateValues()
         {
-            return (Random.Shared.Next(15, 25), Random.Shared.Next(30, 90));
+            return (20, Random.Shared.Next(30, 90));
         }
 
-        private void StartHeater()
+        private void StartHeating()
         {
 
-            if (!config.HeaterOnSince.HasValue)
-                config.HeaterOnSince = DateTime.Now;
+            if (!Config.HeaterOnSince.HasValue)
+                Config.HeaterOnSince = DateTime.Now;
+
+            HeaterRelay.TurnOn();
+            StatusLed.TurnOn();
         }
 
-        private void StopHeater()
+        private void StopHeating()
         {
             HeaterRelay.TurnOff();
             StatusLed.TurnOff();
         }
 
-        private int GetHeaterTime()
+        private int GetHeatingTime()
         {
             int seconds = 0;
-            if (config.HeaterOnSince.HasValue)
+            if (Config.HeaterOnSince.HasValue)
             {
                 var ts = DateTime.Now;
-                var delta = ts - config.HeaterOnSince.Value;
-                config.HeaterOnSince =  (HeaterRelay.IsOn()? ts : null);
+                var delta = ts - Config.HeaterOnSince.Value;
+                Config.HeaterOnSince =  (HeaterRelay.IsOn()? ts : null);
                 seconds = Convert.ToInt32(delta.TotalSeconds);
             }
             return seconds;
