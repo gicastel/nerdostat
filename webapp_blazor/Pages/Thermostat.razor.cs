@@ -33,6 +33,17 @@ namespace BlazorClient.Pages
             }
             else
             {
+                // Pokemon Exception Handler (TM)
+                status = new APIMessage()
+                {
+                    Timestamp = DateTime.Now,
+                    Temperature = 0,
+                    Humidity = 0,
+                    CurrentSetpoint = 0,
+                    IsHeaterOn = false,
+                    OverrideEnd = null,
+                    HeaterOn = null
+                };
                 ConnectionIcon = ConnectionStatusIcon.OFF;
             }
         }
