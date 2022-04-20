@@ -25,7 +25,7 @@ namespace Nerdostat.Shared
     public class APIResponse
     {
         public int status { get; set; }
-        public string payload { get; set; }
+        public APIMessage payload { get; set; }
     }
 
     public class SetPointMessage
