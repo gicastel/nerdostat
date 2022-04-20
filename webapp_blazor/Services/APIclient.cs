@@ -39,8 +39,7 @@ namespace BlazorClient.Services
         {
             var response = await _client.GetAsync(_client.BaseAddress + "read");
             var msg = await response.Content.ReadFromJsonAsync<APIResponse>();
-            var payload = JsonConvert.DeserializeObject<APIMessage>(msg.payload);
-            return payload;
+            return msg.payload;
         }
 
         public async Task<APIMessage> ModifySetPoint(double newTempValue, double? duration)
@@ -48,16 +47,14 @@ namespace BlazorClient.Services
             var setpoint = new SetPoint(newTempValue, duration ?? 4);
             var response = await _client.PostAsJsonAsync<SetPoint>(_client.BaseAddress + "setpoint/add", setpoint);
             var msg = await response.Content.ReadFromJsonAsync<APIResponse>();
-            var payload = JsonConvert.DeserializeObject<APIMessage>(msg.payload);
-            return payload;
+            return msg.payload;
         }
 
         public async Task<APIMessage> ResetSetPoint()
         {
             var response = await _client.PostAsync(_client.BaseAddress + "setpoint/clear", null);
             var msg = await response.Content.ReadFromJsonAsync<APIResponse>();
-            var payload = JsonConvert.DeserializeObject<APIMessage>(msg.payload);
-            return payload;
+            return msg.payload;
         }
 
         private record SetPoint(double setpoint, double hours);

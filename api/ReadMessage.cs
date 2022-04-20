@@ -1,7 +1,4 @@
-using IoTHubTrigger = Microsoft.Azure.WebJobs.EventHubTriggerAttribute;
-
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.EventHubs;
 using System.Text;
 using System.Net.Http;
 using Microsoft.Extensions.Logging;
@@ -15,19 +12,27 @@ using System;
 using Microsoft.AspNetCore.Http;
 using System.Net.Http.Formatting;
 using System.Collections.Generic;
+using Azure.Messaging.EventHubs;
+using System.Reflection.Metadata;
 
 namespace API
 {
 
     public static class ReadMessage
     {
-#if DEBUG
-        [Disable]
-#endif
+//#if DEBUG
+//        [Disable]
+//#endif
         [FunctionName("ReadMessage")]
-        public static async Task Run([IoTHubTrigger("messages/events", Connection = "NerdostatD2C")] EventData message, ILogger log)
+        public static async Task Run([EventHubTrigger("%EventHubName%", Connection = "NerdostatD2C")] EventData message, ILogger log)
         {
-            IotMessage msg = JsonConvert.DeserializeObject<IotMessage>(Encoding.UTF8.GetString(message.Body.Array));
+            IotMessage msg = JsonConvert.DeserializeObject<IotMessage>(Encoding.UTF8.GetString(message.EventBody));
+
+            if (message.Properties.ContainsKey("testDevice"))
+            {
+                log.LogInformation(Encoding.UTF8.GetString(message.EventBody));
+                return;
+            }
 
             log.LogMetric("Temperature", msg.Temperature);
             log.LogMetric("Humidity", msg.Humidity);
