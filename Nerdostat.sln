@@ -12,12 +12,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdostat.Device", "device_dotnet\Nerdostat.Device.csproj", "{78A79AD2-2D0B-475E-8F0E-EE9E548BCD62}"
 EndProject
 Global
-	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		shared\Nerdostat.Shared.projitems*{22c4d92b-598e-47ca-93ce-7f65a54f1c33}*SharedItemsImports = 13
-		shared\Nerdostat.Shared.projitems*{78a79ad2-2d0b-475e-8f0e-ee9e548bcd62}*SharedItemsImports = 5
-		shared\Nerdostat.Shared.projitems*{c5da4a3e-92fe-4ed5-8998-16cd834e22df}*SharedItemsImports = 5
-		shared\Nerdostat.Shared.projitems*{c99c193e-c34d-4ce9-ac41-427828040934}*SharedItemsImports = 5
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
@@ -41,5 +35,11 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {84165B36-4814-486E-A954-3EC8CEB8E219}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		shared\Nerdostat.Shared.projitems*{22c4d92b-598e-47ca-93ce-7f65a54f1c33}*SharedItemsImports = 13
+		shared\Nerdostat.Shared.projitems*{78a79ad2-2d0b-475e-8f0e-ee9e548bcd62}*SharedItemsImports = 5
+		shared\Nerdostat.Shared.projitems*{c5da4a3e-92fe-4ed5-8998-16cd834e22df}*SharedItemsImports = 5
+		shared\Nerdostat.Shared.projitems*{c99c193e-c34d-4ce9-ac41-427828040934}*SharedItemsImports = 5
 	EndGlobalSection
 EndGlobal
