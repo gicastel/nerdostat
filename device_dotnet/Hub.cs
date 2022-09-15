@@ -41,6 +41,8 @@ namespace Nerdostat.Device
                 SdkAssignsMessageId = SdkAssignsMessageId.WhenUnset,
             };
             client ??= DeviceClient.CreateFromConnectionString(ConnectionString, ttype, options);
+            var retryPolicy = new ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(5));
+            client.SetRetryPolicy(retryPolicy);
             client.SetConnectionStatusChangesHandler((status, reason) => ConnectionChanged(status, reason));
             IsTestDevice = _testDevice ?? false;
             this.thermo = _thermo;
@@ -59,14 +61,6 @@ namespace Nerdostat.Device
                     break;
                 case ConnectionStatus.Disconnected:
                     Trace.TraceWarning($"{status} : {reason}");
-                    client.Dispose();
-                    var options = new ClientOptions
-                    {
-                        SdkAssignsMessageId = SdkAssignsMessageId.WhenUnset,
-                    };
-                    client = DeviceClient.CreateFromConnectionString(ConnectionString, ttype, options);
-                    client.SetConnectionStatusChangesHandler((status, reason) => ConnectionChanged(status, reason));
-                    ConfigureCallbacks().GetAwaiter().GetResult();
                     break;
             }
         }
