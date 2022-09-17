@@ -23,7 +23,7 @@ namespace BlazorClient.Pages
         protected override async Task OnInitializedAsync()
         {
             var refresh = _client.GetData();
-            var timeout = Task.Delay(10*1000);
+            var timeout = Task.Delay(30*1000);
             var first = await Task.WhenAny(refresh, timeout);
             if (first == refresh)
             {
