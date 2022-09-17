@@ -16,9 +16,8 @@ else
             <FluentAccordion>
            @foreach (var day in status.Keys)
             {
-                <FluentAccordionItem>
-                    <span slot="heading">@Enum.GetName(typeof(Nerdostat.Shared.PyWeekDays), day)</span>
-                        <FluentDataGrid GenerateHeader=GenerateHeaderOptions.None GridTemplateColumns="1fr 1fr" TItem=string>
+                    <FluentAccordionItem Heading=@Enum.GetName(typeof(Nerdostat.Shared.PyWeekDays), day)>
+                        <FluentDataGrid GenerateHeader=GenerateHeaderOption.None GridTemplateColumns="1fr 1fr" TItem=string>
                     <FluentDataGridRow TItem=string RowType="DataGridRowType.Header">
                         <FluentDataGridCell GridColumn=1 CellType="DataGridCellType.ColumnHeader">Hour</FluentDataGridCell>
                         <FluentDataGridCell GridColumn=2 CellType="DataGridCellType.ColumnHeader">00->15</FluentDataGridCell>
