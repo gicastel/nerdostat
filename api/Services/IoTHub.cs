@@ -10,7 +10,7 @@ namespace API.Services
     {
         private static string deviceID => System.Environment.GetEnvironmentVariable("NerdostatDeviceId");
 
-        private const int Timeout = 15;
+        private const int Timeout = 30;
 
         private static Lazy<ServiceClient> _client = new Lazy<ServiceClient>(() =>
         {
