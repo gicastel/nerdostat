@@ -51,6 +51,8 @@ namespace BlazorClient.Pages
         {
             if (status.OverrideEnd.HasValue)
                 this.OverrideEndInMinutes = Convert.ToInt32(status.OverrideEnd / 60000);
+            else
+                this.OverrideEndInMinutes = 0;
 
             HeaterIcon = status.IsHeaterOn ? HeaterStatusIcon.ON : HeaterStatusIcon.OFF;
         }
