@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Nerdostat.Shared
 {
@@ -22,10 +23,15 @@ namespace Nerdostat.Shared
         public long? HeaterOn { get; set; }
     }
 
-    public class APIResponse
+    public class APIResponse<T>
     {
         public int status { get; set; }
-        public APIMessage payload { get; set; }
+        public T payload { get; set; }
+    }
+
+    public class ProgramMessage : Dictionary<int, Dictionary<int, Dictionary<int, decimal>>>
+    {
+
     }
 
     public class SetPointMessage
@@ -41,5 +47,18 @@ namespace Nerdostat.Shared
         public static string ClearManualSetPoint => "ClearManualSetpoint";
         public static string SetAwayOn => "SetAwayOn";
         public static string SetAwayOff => "SetAwayOff";
+        public static string GetProgram => "GetProgram";
+        public static string SetProgram => "SetProgram";
+    }
+
+    public enum PyWeekDays
+    {
+        Monday,
+        Tuesday,
+        Wednesday,
+        Thursday,
+        Friday,
+        Saturday,
+        Sunday
     }
 }

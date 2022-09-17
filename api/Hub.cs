@@ -1,28 +1,22 @@
-using Microsoft.Azure.WebJobs;
-using System.Text;
-using System.Net.Http;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using System.Threading.Tasks;
-using Microsoft.Azure.WebJobs.Extensions.Http;
-using API.Services;
-using Nerdostat.Shared;
-using Microsoft.AspNetCore.Mvc;
-using System;
-using Microsoft.AspNetCore.Http;
-using System.Net.Http.Formatting;
-using System.Collections.Generic;
 using Azure.Messaging.EventHubs;
-using System.Reflection.Metadata;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Extensions.Logging;
+using Nerdostat.Shared;
+using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Http.Formatting;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace API
 {
 
-    public static class ReadMessage
+    public static class Hub
     {
-//#if DEBUG
-//        [Disable]
-//#endif
+#if DEBUG
+        [Disable]
+#endif
         [FunctionName("ReadMessage")]
         public static async Task Run([EventHubTrigger("%EventHubName%", Connection = "NerdostatD2C")] EventData message, ILogger log)
         {
@@ -51,22 +45,6 @@ namespace API
                     new List<IotMessage>() { msg },
                     new JsonMediaTypeFormatter()
                     );
-            }
-        }
-
-
-        [FunctionName("ReadApp")]
-        public static async Task<IActionResult> ReadFromApp(
-           [HttpTrigger(AuthorizationLevel.Function, "get", Route = "read")] HttpRequestMessage req,
-           ILogger log)
-        {
-            try
-            {
-                return new OkObjectResult(await IoTHub.ReadNow());
-            }
-            catch (Exception ex)
-            {
-                return new BadRequestObjectResult(ex);
             }
         }
     }

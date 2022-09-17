@@ -1,8 +1,8 @@
 using System;
 using System.Device.Gpio;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Iot.Device.DHTxx;
 
 namespace Nerdostat.Device
 {
@@ -24,6 +24,8 @@ namespace Nerdostat.Device
             
             Controller.Write(Pin, PinValue.High);
             On = true;
+
+            Trace.TraceInformation($"Led {Pin} On");
         }
 
         public void TurnOff()
@@ -34,6 +36,8 @@ namespace Nerdostat.Device
 
             Controller.Write(Pin, PinValue.Low);
             On = false;
+
+            Trace.TraceInformation($"Led {Pin} Off");
         }
 
         public async Task Blink(decimal OnDuration, decimal OffDuration, CancellationToken cts)

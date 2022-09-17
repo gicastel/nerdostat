@@ -1,14 +1,8 @@
-﻿using BlazorClient.Services;
+﻿using Nerdostat.Shared;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
-using System.Threading.Tasks;
-using Nerdostat.Shared;
 using System.Net.Http.Json;
-using System.Text.Json.Serialization;
-using Newtonsoft.Json;
-using Microsoft.Extensions.Configuration;
+using System.Threading.Tasks;
 
 namespace BlazorClient.Services
 {
@@ -17,6 +11,9 @@ namespace BlazorClient.Services
         Task<APIMessage> GetData();
         Task<APIMessage> ModifySetPoint(double newTempValue, double? duration);
         Task<APIMessage> ResetSetPoint();
+
+        Task<ProgramMessage> GetProgram();
+        Task<ProgramMessage> UpdateProgram(ProgramMessage program);
 
     }
 
@@ -38,7 +35,7 @@ namespace BlazorClient.Services
         public async Task<APIMessage> GetData()
         {
             var response = await _client.GetAsync(_client.BaseAddress + "read");
-            var msg = await response.Content.ReadFromJsonAsync<APIResponse>();
+            var msg = await response.Content.ReadFromJsonAsync<APIResponse<APIMessage>>();
             return msg.payload;
         }
 
@@ -46,14 +43,28 @@ namespace BlazorClient.Services
         {
             var setpoint = new SetPoint(newTempValue, duration ?? 4);
             var response = await _client.PostAsJsonAsync<SetPoint>(_client.BaseAddress + "setpoint/add", setpoint);
-            var msg = await response.Content.ReadFromJsonAsync<APIResponse>();
+            var msg = await response.Content.ReadFromJsonAsync<APIResponse<APIMessage>>();
             return msg.payload;
         }
 
         public async Task<APIMessage> ResetSetPoint()
         {
             var response = await _client.PostAsync(_client.BaseAddress + "setpoint/clear", null);
-            var msg = await response.Content.ReadFromJsonAsync<APIResponse>();
+            var msg = await response.Content.ReadFromJsonAsync<APIResponse<APIMessage>>();
+            return msg.payload;
+        }
+
+        public async Task<ProgramMessage> GetProgram()
+        {
+            var response = await _client.GetAsync(_client.BaseAddress + "program");
+            var msg = await response.Content.ReadFromJsonAsync<APIResponse<ProgramMessage>>();
+            return msg.payload;
+        }
+
+        public async Task<ProgramMessage> UpdateProgram(ProgramMessage program)
+        {
+            var response = await _client.PostAsJsonAsync(_client.BaseAddress + "program", program);
+            var msg = await response.Content.ReadFromJsonAsync<APIResponse<ProgramMessage>>();
             return msg.payload;
         }
 

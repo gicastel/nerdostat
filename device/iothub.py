@@ -1,8 +1,8 @@
 from azure.iot.device import IoTHubDeviceClient, Message, MethodResponse
 from datetime import datetime
+
+import jsonpickle
 import thermostat as thermo
-import threading
-import json
 
 from gpiozero import LED
 
@@ -30,13 +30,25 @@ def _callback_SetAwayOn(_):
 def _callback_ClearSetpoint(_):
     thermo.revertToProgram()
     return _generateMessageJson(*thermo.refresh()), 200
-    
+
+def _callback_GetProgram(_):
+    program = thermo._config.PROGRAM
+    return jsonpickle.encode(program), 200
+
+def _callback_SetProgram(pl):
+    program = pl.get("program")
+    thermo._config.PROGRAM = program
+    return jsonpickle.encode(thermo._config.PROGRAM), 200
+
 _callbackSelector = {
     "ReadNow" : _callback_ReadNow,
     "SetManualSetPoint" : _callback_Setpoint,
     "ClearManualSetPoint" : _callback_ClearSetpoint,
     "SetAwayOn" : _callback_Setpoint,
-    "SetAwayOff" : _callback_ClearSetpoint
+    "SetAwayOff" : _callback_ClearSetpoint,
+    
+    "GetProgram" : _callback_GetProgram,
+    "SetProgram" : _callback_SetProgram
 }
 
 def iothub_client_init():

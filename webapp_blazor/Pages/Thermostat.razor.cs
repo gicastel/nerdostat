@@ -23,7 +23,7 @@ namespace BlazorClient.Pages
         protected override async Task OnInitializedAsync()
         {
             var refresh = _client.GetData();
-            var timeout = Task.Delay(10*1000);
+            var timeout = Task.Delay(30*1000);
             var first = await Task.WhenAny(refresh, timeout);
             if (first == refresh)
             {
@@ -33,6 +33,17 @@ namespace BlazorClient.Pages
             }
             else
             {
+                // Pokemon Exception Handler (TM)
+                status = new APIMessage()
+                {
+                    Timestamp = DateTime.Now,
+                    Temperature = 0,
+                    Humidity = 0,
+                    CurrentSetpoint = 0,
+                    IsHeaterOn = false,
+                    OverrideEnd = null,
+                    HeaterOn = null
+                };
                 ConnectionIcon = ConnectionStatusIcon.OFF;
             }
         }

@@ -1,0 +1,49 @@
+@page "/program"
+@inherits ProgramBase
+
+@if (status == null)
+{
+     <div class="jumbotron vertical-center">
+          <div class="container text-center">
+            <FluentProgressRing></FluentProgressRing>
+        </div>
+    </div>
+}
+else
+{
+    <div class="jumbotron vertical-center">
+        <div class="container">
+            <FluentAccordion>
+           @foreach (var day in status.Keys)
+            {
+                    <FluentAccordionItem Heading=@Enum.GetName(typeof(Nerdostat.Shared.PyWeekDays), day)>
+                        <FluentDataGrid GenerateHeader=GenerateHeaderOption.None GridTemplateColumns="1fr 1fr" TItem=string>
+                    <FluentDataGridRow TItem=string RowType="DataGridRowType.Header">
+                        <FluentDataGridCell GridColumn=1 CellType="DataGridCellType.ColumnHeader">Hour</FluentDataGridCell>
+                        <FluentDataGridCell GridColumn=2 CellType="DataGridCellType.ColumnHeader">00->15</FluentDataGridCell>
+                        <FluentDataGridCell GridColumn=3 CellType="DataGridCellType.ColumnHeader">15->30</FluentDataGridCell>
+                        <FluentDataGridCell GridColumn=4 CellType="DataGridCellType.ColumnHeader">30->45</FluentDataGridCell>
+                        <FluentDataGridCell GridColumn=5 CellType="DataGridCellType.ColumnHeader">45->00</FluentDataGridCell>
+                    </FluentDataGridRow>
+                    @foreach (var hour in status[day].Keys)
+                    {
+                        <FluentDataGridRow TItem=string>
+                            <FluentDataGridCell GridColumn=1>@hour.ToString("##")</FluentDataGridCell>
+                            <FluentDataGridCell GridColumn=2><FluentNumberField @bind-Value=status[day][hour][0]></FluentNumberField></FluentDataGridCell>
+                            <FluentDataGridCell GridColumn=3><FluentNumberField @bind-Value=status[day][hour][1]></FluentNumberField></FluentDataGridCell>
+                            <FluentDataGridCell GridColumn=4><FluentNumberField @bind-Value=status[day][hour][2]></FluentNumberField></FluentDataGridCell>
+                            <FluentDataGridCell GridColumn=5><FluentNumberField @bind-Value=status[day][hour][3]></FluentNumberField></FluentDataGridCell>
+                        </FluentDataGridRow>
+                    }
+                    </FluentDataGrid>
+
+                </FluentAccordionItem>
+            }
+            </FluentAccordion>
+        </div>
+        <div>
+            <FluentButton @onclick=@Save>Save</FluentButton>
+            <FluentButton @onclick=@Reset>Reset</FluentButton>
+        </div>
+    </div>
+}

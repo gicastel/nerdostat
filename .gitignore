@@ -1,3 +1,6 @@
 .vs
 .vscode
 .venv
+deploy.ps1
+/device_dotnet/pub
+/api/Properties/ServiceDependencies/nerdostat-api - Zip Deploy
