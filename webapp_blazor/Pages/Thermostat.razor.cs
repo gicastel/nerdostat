@@ -22,18 +22,13 @@ namespace BlazorClient.Pages
 
         protected override async Task OnInitializedAsync()
         {
-            var refresh = _client.GetData();
-            var timeout = Task.Delay(30*1000);
-            var first = await Task.WhenAny(refresh, timeout);
-            if (first == refresh)
+            try
             {
-                status = refresh.Result;
+                status = await _client.GetData();
                 ConnectionIcon = ConnectionStatusIcon.ON;
-                RefreshStatus();
             }
-            else
+            catch 
             {
-                // Pokemon Exception Handler (TM)
                 status = new APIMessage()
                 {
                     Timestamp = DateTime.Now,
@@ -44,7 +39,11 @@ namespace BlazorClient.Pages
                     OverrideEnd = null,
                     HeaterOn = null
                 };
-                ConnectionIcon = ConnectionStatusIcon.OFF;
+                ConnectionIcon = ConnectionStatusIcon.OFF;                
+            }
+            finally
+            {
+                RefreshStatus();
             }
         }
 
