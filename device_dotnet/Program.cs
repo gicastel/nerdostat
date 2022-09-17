@@ -9,7 +9,9 @@ namespace Nerdostat.Device
         private const int Interval = 5*60;
         static async Task Main(string[] args)
         {
+#if DEBUG
             Trace.Listeners.Add(new ConsoleTraceListener());
+#endif
 
             Trace.TraceInformation("Starting...");
 

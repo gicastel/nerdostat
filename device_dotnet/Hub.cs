@@ -24,6 +24,8 @@ namespace Nerdostat.Device
 
         private bool IsTestDevice;
 
+        private bool IsConnected;
+
         TransportType ttype = TransportType.Mqtt;
         public static async Task<Hub> Initialize(string connectionString, bool? testDevice, Thermostat thermo)
         {
@@ -36,6 +38,7 @@ namespace Nerdostat.Device
         private Hub(string connectionString, bool? _testDevice, Thermostat _thermo)
         {
             ConnectionString = connectionString;
+            IsConnected = false;
             var options = new ClientOptions
             {
                 SdkAssignsMessageId = SdkAssignsMessageId.WhenUnset,
@@ -44,6 +47,7 @@ namespace Nerdostat.Device
             var retryPolicy = new ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(5));
             client.SetRetryPolicy(retryPolicy);
             client.SetConnectionStatusChangesHandler((status, reason) => ConnectionChanged(status, reason));
+            client.OperationTimeoutInMilliseconds = 5 * 60 * 1000;
             IsTestDevice = _testDevice ?? false;
             this.thermo = _thermo;
             AzureStatusLed = new OuputPin(AzureStatusPinNumber);
@@ -55,12 +59,18 @@ namespace Nerdostat.Device
             {
                 case ConnectionStatus.Connected:
                     Trace.TraceInformation($"{status} : {reason}");
+                    AzureStatusLed.TurnOn();
+                    IsConnected = true;
                     break;
                 case ConnectionStatus.Disconnected_Retrying:
                     Trace.TraceWarning($"{status} : {reason}");
+                    AzureStatusLed.TurnOff();
+                    IsConnected = false;
                     break;
                 case ConnectionStatus.Disconnected:
                     Trace.TraceWarning($"{status} : {reason}");
+                    AzureStatusLed.TurnOff();
+                    IsConnected = false;
                     break;
             }
         }
@@ -108,7 +118,7 @@ namespace Nerdostat.Device
             };
 
             var stringData = JsonConvert.SerializeObject(message);
-            Trace.TraceInformation(stringData);
+            Trace.TraceInformation("Reply: " + stringData);
             var byteData = Encoding.UTF8.GetBytes(stringData);
             return new MethodResponse(byteData, 200);
         }
@@ -142,7 +152,7 @@ namespace Nerdostat.Device
 
         public async Task SendIotMessage(APIMessage message)
         {
-            var cts = new CancellationTokenSource();
+            using var cts = new CancellationTokenSource();
             var blink = AzureStatusLed.Blink((decimal)0.1, (decimal)0.1, cts.Token);
             var messageBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(message));
             var iotMessage = new Message(messageBytes)
@@ -154,20 +164,31 @@ namespace Nerdostat.Device
             if (IsTestDevice)
                 iotMessage.Properties.Add("testDevice", "true");
 
-            try
+            if (IsConnected)
             {
-                Trace.TraceInformation(JsonConvert.SerializeObject(message));
-                await client.SendEventAsync(iotMessage);
-                cts.Cancel();
-                await blink;
-                AzureStatusLed.TurnOn();
+                try
+                {
+                    await client.SendEventAsync(iotMessage);
+                    cts.Cancel();
+                    await blink;
+                    AzureStatusLed.TurnOn();
+                }
+                catch (Exception ex)
+                {
+                    Trace.TraceInformation("ERROR: " + ex.ToString());
+                    cts.Cancel();
+                    AzureStatusLed.TurnOff();
+                    IsConnected = false;
+                }
             }
-            catch (Exception ex)
-            {
-               Trace.TraceError(ex.ToString());
-                cts.Cancel();
-                AzureStatusLed.TurnOff();
-            }
+
+            string traceMsg = JsonConvert.SerializeObject(iotMessage);
+
+            if (IsConnected)
+                Trace.TraceInformation(traceMsg);
+            else
+                Trace.TraceWarning(traceMsg);
+            
         }
     }
 }
