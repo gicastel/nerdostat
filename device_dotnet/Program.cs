@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Linq;
+﻿using System;
 using System.Threading.Tasks;
 
 namespace Nerdostat.Device
@@ -9,11 +8,7 @@ namespace Nerdostat.Device
         private const int Interval = 5*60;
         static async Task Main(string[] args)
         {
-#if DEBUG
-            Trace.Listeners.Add(new ConsoleTraceListener());
-#endif
-
-            Trace.TraceInformation("Starting...");
+            Console.WriteLine("Starting...");
 
             bool regenConfig = false;
             if (args.Length > 0 && args[0] == "regenConfig")
@@ -23,7 +18,7 @@ namespace Nerdostat.Device
             var thermo = new Thermostat(config);
             if (config.IotHubConnectionString is null)
             {
-                Trace.TraceWarning("Iot Connection String not configured");
+                Console.WriteLine("WARN: Iot Connection String not configured");
             }
 
             var hub = await Hub.Initialize(config.IotHubConnectionString, config.TestDevice, thermo);
