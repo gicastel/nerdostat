@@ -58,17 +58,22 @@ namespace Nerdostat.Device
             switch(status)
             {
                 case ConnectionStatus.Connected:
-                    Trace.TraceInformation($"{status} : {reason}");
+                    Console.WriteLine($"INFO: {status} : {reason}");
                     AzureStatusLed.TurnOn();
                     IsConnected = true;
                     break;
                 case ConnectionStatus.Disconnected_Retrying:
-                    Trace.TraceWarning($"{status} : {reason}");
+                    Console.WriteLine($"WARN: {status} : {reason}");
                     AzureStatusLed.TurnOff();
                     IsConnected = false;
                     break;
                 case ConnectionStatus.Disconnected:
-                    Trace.TraceWarning($"{status} : {reason}");
+                    Console.WriteLine($"WARN: {status} : {reason}");
+                    AzureStatusLed.TurnOff();
+                    IsConnected = false;
+                    break;
+                case ConnectionStatus.Disabled:
+                    Console.WriteLine($"WARN: {status} : {reason}");
                     AzureStatusLed.TurnOff();
                     IsConnected = false;
                     break;
@@ -105,7 +110,7 @@ namespace Nerdostat.Device
 
         private async Task<MethodResponse> RefreshThermoData(MethodRequest methodRequest, object userContext)
         {
-           Trace.TraceInformation(DeviceMethods.ReadNow);
+            Console.WriteLine($"WEBR: {DeviceMethods.ReadNow}");
             var thermoData = await thermo.Refresh();
             var message = new APIMessage(){
                 Timestamp = DateTime.Now,
@@ -118,15 +123,15 @@ namespace Nerdostat.Device
             };
 
             var stringData = JsonConvert.SerializeObject(message);
-            Trace.TraceInformation("Reply: " + stringData);
+            Console.WriteLine("WEBR: Reply " + stringData);
             var byteData = Encoding.UTF8.GetBytes(stringData);
             return new MethodResponse(byteData, 200);
         }
 
         private async Task<MethodResponse> OverrideSetpoint(MethodRequest methodRequest, object userContext)
         {
-            Trace.TraceInformation(DeviceMethods.SetManualSetpoint);
 
+            Console.WriteLine($"WEBR: {DeviceMethods.SetManualSetpoint}");
             var input = JsonConvert.DeserializeObject<SetPointMessage>(methodRequest.DataAsJson);
             thermo.OverrideSetpoint(
                 Convert.ToDecimal(input.Setpoint),
@@ -136,7 +141,7 @@ namespace Nerdostat.Device
 
         private async Task<MethodResponse> ClearSetpoint(MethodRequest methodRequest, object userContext)
         {
-            Trace.TraceInformation(DeviceMethods.ClearManualSetPoint);
+            Console.WriteLine($"WEBR: {DeviceMethods.ClearManualSetPoint}");
 
             thermo.ReturnToProgram();
             return await RefreshThermoData(methodRequest, userContext);
@@ -144,7 +149,7 @@ namespace Nerdostat.Device
 
         private async Task<MethodResponse> SetAwayOn(MethodRequest methodRequest, object userContext)
         {
-            Trace.TraceInformation(DeviceMethods.SetAwayOn);
+            Console.WriteLine($"WEBR: {DeviceMethods.SetAwayOn}");
 
             thermo.SetAway();
             return await RefreshThermoData(methodRequest, userContext);
@@ -154,7 +159,8 @@ namespace Nerdostat.Device
         {
             using var cts = new CancellationTokenSource();
             var blink = AzureStatusLed.Blink((decimal)0.1, (decimal)0.1, cts.Token);
-            var messageBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(message));
+            var messageString = JsonConvert.SerializeObject(message);
+            var messageBytes = Encoding.UTF8.GetBytes(messageString);
             var iotMessage = new Message(messageBytes)
             {
                 ContentEncoding = "utf-8",
@@ -172,23 +178,20 @@ namespace Nerdostat.Device
                     cts.Cancel();
                     await blink;
                     AzureStatusLed.TurnOn();
+                    IsConnected = true;
+                    Console.WriteLine($"INFO: {messageString}");
                 }
                 catch (Exception ex)
                 {
-                    Trace.TraceInformation("ERROR: " + ex.ToString());
-                    cts.Cancel();
+                    Console.WriteLine($"ERRR: {ex}");
                     AzureStatusLed.TurnOff();
                     IsConnected = false;
                 }
             }
-
-            string traceMsg = JsonConvert.SerializeObject(iotMessage);
-
-            if (IsConnected)
-                Trace.TraceInformation(traceMsg);
             else
-                Trace.TraceWarning(traceMsg);
-            
+            {
+                Console.WriteLine($"WARN: Skipped message");
+            }
         }
     }
 }

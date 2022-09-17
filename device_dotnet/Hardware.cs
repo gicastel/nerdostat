@@ -1,6 +1,5 @@
 using System;
 using System.Device.Gpio;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,7 +8,7 @@ namespace Nerdostat.Device
     public class OuputPin
     {
         private bool On;
-        private int Pin;
+        private readonly int Pin;
 
         public OuputPin(int pinNumber)
         {
@@ -25,7 +24,7 @@ namespace Nerdostat.Device
             Controller.Write(Pin, PinValue.High);
             On = true;
 
-            Trace.TraceInformation($"Led {Pin} On");
+            Console.WriteLine($"INFO: Led {Pin} On");
         }
 
         public void TurnOff()
@@ -37,7 +36,7 @@ namespace Nerdostat.Device
             Controller.Write(Pin, PinValue.Low);
             On = false;
 
-            Trace.TraceInformation($"Led {Pin} Off");
+            Console.WriteLine($"INFO: Led {Pin} Off");
         }
 
         public async Task Blink(decimal OnDuration, decimal OffDuration, CancellationToken cts)
@@ -49,9 +48,9 @@ namespace Nerdostat.Device
             while (!cts.IsCancellationRequested)
             {
                 Controller.Write(Pin, PinValue.High);
-                await Task.Delay(Convert.ToInt32(OnDuration * 1000));
+                await Task.Delay(Convert.ToInt32(OnDuration * 1000), CancellationToken.None);
                 Controller.Write(Pin, PinValue.Low);
-                await Task.Delay(Convert.ToInt32(OffDuration * 1000));
+                await Task.Delay(Convert.ToInt32(OffDuration * 1000), CancellationToken.None);
             }
             Controller.Write(Pin, PinValue.Low);
 

@@ -1,9 +1,7 @@
 ﻿using Iot.Device.DHTxx;
-using Microsoft.Extensions.Logging;
 using Nerdostat.Shared;
 using System;
 using System.Device.Gpio;
-using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace Nerdostat.Device
@@ -129,15 +127,16 @@ namespace Nerdostat.Device
             var hum = sensor.Humidity;
 
             int wait = 1000;
-            while(!sensor.IsLastReadSuccessful)
+            while (!sensor.IsLastReadSuccessful)
             {
-                Trace.TraceInformation("Sensor read failed.");
+                Console.WriteLine("WARN: Sensor read failed");
                 if (wait < 4999)
                     wait += 500;
                 await Task.Delay(wait);
                 temp = sensor.Temperature;
                 hum = sensor.Humidity;
             }
+            Console.WriteLine("INFO: Sensor read OK");
             return (temp.DegreesCelsius, hum.Percent);
         }
 
