@@ -1,18 +1,22 @@
+using Microsoft.Extensions.Logging;
 using System;
 using System.Device.Gpio;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Nerdostat.Device
+namespace Nerdostat.Device.Models
 {
-    public class OuputPin
+    public class OutputPin
     {
         private bool On;
-        private readonly int Pin;
+        public int Pin;
 
-        public OuputPin(int pinNumber)
+        private readonly ILogger logger;
+
+        public OutputPin(int pinNumber, ILogger _logger)
         {
-            this.Pin = pinNumber;
+            Pin = pinNumber;
+            logger = _logger;
         }
 
         public void TurnOn()
@@ -20,10 +24,9 @@ namespace Nerdostat.Device
             using var Controller = new GpioController();
             Controller.OpenPin(Pin);
             Controller.SetPinMode(Pin, PinMode.Output);
-            
             Controller.Write(Pin, PinValue.High);
-            On = true;
 
+            On = true;
             Console.WriteLine($"INFO: Led {Pin} On");
         }
 
@@ -32,10 +35,9 @@ namespace Nerdostat.Device
             using var Controller = new GpioController();
             Controller.OpenPin(Pin);
             Controller.SetPinMode(Pin, PinMode.Output);
-
             Controller.Write(Pin, PinValue.Low);
-            On = false;
 
+            On = false;
             Console.WriteLine($"INFO: Led {Pin} Off");
         }
 
@@ -58,6 +60,7 @@ namespace Nerdostat.Device
         }
 
         public bool IsOn() => On;
-    }
 
+    }
 }
+

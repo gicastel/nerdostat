@@ -1,81 +1,93 @@
 using Microsoft.Azure.Devices.Client;
 using Microsoft.Azure.Devices.Shared;
+using Microsoft.Extensions.Logging;
+using Nerdostat.Device.Models;
 using Nerdostat.Shared;
 using Newtonsoft.Json;
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Nerdostat.Device
+namespace Nerdostat.Device.Services
 {
     public class Hub
     {
         private int AzureStatusPinNumber = 18;
 
-        private OuputPin AzureStatusLed;
-
-        private readonly Thermostat thermo;
+#if DEBUG
+        private readonly MockPin AzureStatusLed;
+#else
+        private readonly OutputPin AzureStatusLed;
+#endif
+        private readonly Thermostat Thermo;
+        private readonly Configuration Config;
+        private readonly ILogger log;
 
         private DeviceClient client;
 
-        private readonly string ConnectionString;
+        private volatile bool IsConnected;
 
-        private bool IsTestDevice;
+        private SemaphoreSlim deviceSemaphore = new(1, 1); 
 
-        private bool IsConnected;
-
-        TransportType ttype = TransportType.Mqtt;
-        public static async Task<Hub> Initialize(string connectionString, bool? testDevice, Thermostat thermo)
+        public Hub(Configuration _config, Thermostat _thermo, ILogger<Hub> _log)
         {
-            var hub = new Hub(connectionString, testDevice, thermo);
-            await hub.ConfigureCallbacks();
-
-            return hub;
+            Config = _config;
+            Thermo = _thermo;
+            log = _log;
+            
+            AzureStatusLed = new(AzureStatusPinNumber, log);
         }
-
-        private Hub(string connectionString, bool? _testDevice, Thermostat _thermo)
+        public async Task Initialize()
         {
-            ConnectionString = connectionString;
+            await deviceSemaphore.WaitAsync();
             IsConnected = false;
+            if (client != null)
+            {
+                await client.DisposeAsync();
+            }
+
             var options = new ClientOptions
             {
                 SdkAssignsMessageId = SdkAssignsMessageId.WhenUnset,
             };
-            client ??= DeviceClient.CreateFromConnectionString(ConnectionString, ttype, options);
+            client = DeviceClient.CreateFromConnectionString(Config.IotHubConnectionString, TransportType.Mqtt, options);
             var retryPolicy = new ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(5));
             client.SetRetryPolicy(retryPolicy);
             client.SetConnectionStatusChangesHandler((status, reason) => ConnectionChanged(status, reason));
             client.OperationTimeoutInMilliseconds = 5 * 60 * 1000;
-            IsTestDevice = _testDevice ?? false;
-            this.thermo = _thermo;
-            AzureStatusLed = new OuputPin(AzureStatusPinNumber);
+            await client.OpenAsync();
+            await ConfigureCallbacks();
+            deviceSemaphore.Release();
         }
 
-        private void ConnectionChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
+        private async void ConnectionChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
-            switch(status)
+            switch (status)
             {
                 case ConnectionStatus.Connected:
-                    Console.WriteLine($"INFO: {status} : {reason}");
+                    log.LogInformation($"Connetion Status: {status} : {reason}");
                     AzureStatusLed.TurnOn();
                     IsConnected = true;
                     break;
                 case ConnectionStatus.Disconnected_Retrying:
-                    Console.WriteLine($"WARN: {status} : {reason}");
+                    log.LogWarning($"Connetion Status: {status} : {reason}");
                     AzureStatusLed.TurnOff();
                     IsConnected = false;
                     break;
                 case ConnectionStatus.Disconnected:
-                    Console.WriteLine($"WARN: {status} : {reason}");
+                    log.LogWarning($"Connetion Status: {status} : {reason}");
                     AzureStatusLed.TurnOff();
                     IsConnected = false;
+                    await Initialize();
                     break;
                 case ConnectionStatus.Disabled:
-                    Console.WriteLine($"WARN: {status} : {reason}");
+                    log.LogError($"Connetion Status: {status} : {reason}");
                     AzureStatusLed.TurnOff();
                     IsConnected = false;
+                    await Initialize();
                     break;
             }
         }
@@ -110,9 +122,10 @@ namespace Nerdostat.Device
 
         private async Task<MethodResponse> RefreshThermoData(MethodRequest methodRequest, object userContext)
         {
-            Console.WriteLine($"WEBR: {DeviceMethods.ReadNow}");
-            var thermoData = await thermo.Refresh();
-            var message = new APIMessage(){
+            log.LogInformation($"{DeviceMethods.ReadNow}");
+            var thermoData = await Thermo.Refresh();
+            var message = new APIMessage()
+            {
                 Timestamp = DateTime.Now,
                 Temperature = thermoData.Temperature,
                 Humidity = thermoData.Humidity,
@@ -123,7 +136,7 @@ namespace Nerdostat.Device
             };
 
             var stringData = JsonConvert.SerializeObject(message);
-            Console.WriteLine("WEBR: Reply " + stringData);
+            log.LogInformation("Reply " + stringData);
             var byteData = Encoding.UTF8.GetBytes(stringData);
             return new MethodResponse(byteData, 200);
         }
@@ -131,9 +144,9 @@ namespace Nerdostat.Device
         private async Task<MethodResponse> OverrideSetpoint(MethodRequest methodRequest, object userContext)
         {
 
-            Console.WriteLine($"WEBR: {DeviceMethods.SetManualSetpoint}");
+            log.LogInformation($"WEBR: {DeviceMethods.SetManualSetpoint}");
             var input = JsonConvert.DeserializeObject<SetPointMessage>(methodRequest.DataAsJson);
-            thermo.OverrideSetpoint(
+            Thermo.OverrideSetpoint(
                 Convert.ToDecimal(input.Setpoint),
                 Convert.ToInt32(input.Hours));
             return await RefreshThermoData(methodRequest, userContext);
@@ -141,17 +154,17 @@ namespace Nerdostat.Device
 
         private async Task<MethodResponse> ClearSetpoint(MethodRequest methodRequest, object userContext)
         {
-            Console.WriteLine($"WEBR: {DeviceMethods.ClearManualSetPoint}");
+            log.LogInformation($"WEBR: {DeviceMethods.ClearManualSetPoint}");
 
-            thermo.ReturnToProgram();
+            Thermo.ReturnToProgram();
             return await RefreshThermoData(methodRequest, userContext);
         }
 
         private async Task<MethodResponse> SetAwayOn(MethodRequest methodRequest, object userContext)
         {
-            Console.WriteLine($"WEBR: {DeviceMethods.SetAwayOn}");
+            log.LogInformation($"WEBR: {DeviceMethods.SetAwayOn}");
 
-            thermo.SetAway();
+            Thermo.SetAway();
             return await RefreshThermoData(methodRequest, userContext);
         }
 
@@ -167,7 +180,7 @@ namespace Nerdostat.Device
                 ContentType = "application/json"
             };
 
-            if (IsTestDevice)
+            if (Config.TestDevice)
                 iotMessage.Properties.Add("testDevice", "true");
 
             if (IsConnected)
@@ -179,18 +192,18 @@ namespace Nerdostat.Device
                     await blink;
                     AzureStatusLed.TurnOn();
                     IsConnected = true;
-                    Console.WriteLine($"INFO: {messageString}");
+                    log.LogInformation($"{messageString}");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"ERRR: {ex}");
+                    log.LogError($"{ex}");
                     AzureStatusLed.TurnOff();
                     IsConnected = false;
                 }
             }
             else
             {
-                Console.WriteLine($"WARN: Skipped message");
+                log.LogWarning($"Skipped message: {messageString}");
             }
         }
     }

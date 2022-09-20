@@ -1,44 +1,29 @@
 ﻿using System;
+using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Nerdostat.Device.Services;
 
 namespace Nerdostat.Device
 {
     class Program
     {
-        private const int Interval = 5*60;
-        static async Task Main(string[] args)
+        private const int Interval = 5 * 60;
+        private static async Task Main(string[] args)
         {
-            Console.WriteLine("Starting...");
-
-            bool regenConfig = false;
-            if (args.Length > 0 && args[0] == "regenConfig")
-                regenConfig = true;
-
-            var config = await Configuration.LoadConfiguration(regenConfig);
-            var thermo = new Thermostat(config);
-            if (config.IotHubConnectionString is null)
-            {
-                Console.WriteLine("WARN: Iot Connection String not configured");
-            }
-
-            var hub = await Hub.Initialize(config.IotHubConnectionString, config.TestDevice, thermo);
-
-            while (true)
-            {
-                var message = await thermo.Refresh();
-
-                try
+            await Host.CreateDefaultBuilder(args)
+                .UseContentRoot(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location))
+                .ConfigureServices((hostContext, services) =>
                 {
-                    await hub.SendIotMessage(message);
-                }
-                catch 
-                {
-                    //pokemon handler
-                    // we don't want a connection problem preventing the thermostat to work
-                }
-
-                await Task.Delay(Interval * 1000);
-            }
+                    services.AddHostedService<HostedThermostat>()
+                        .AddSingleton<Configuration>()
+                        .AddSingleton<Thermostat>()
+                        .AddSingleton<Hub>();
+                })
+                .RunConsoleAsync();
         }
     }
 }
