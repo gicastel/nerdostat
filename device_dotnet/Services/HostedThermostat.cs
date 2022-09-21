@@ -15,56 +15,75 @@ namespace Nerdostat.Device.Services
         private readonly Thermostat Thermo;
         private readonly Hub Hub;
         private readonly Configuration Config;
+        private readonly IHostApplicationLifetime _appLifetime;
 
+        private Task? _applicationTask;
         private const int Interval = 5 * 60;
 
-        public HostedThermostat(Thermostat _thermo, Hub _hub, Configuration _config, ILogger<HostedThermostat> _log)
+        public HostedThermostat(Thermostat _thermo, Hub _hub, Configuration _config, ILogger<HostedThermostat> _log, IHostApplicationLifetime appLifetime)
         {
             Thermo = _thermo;
             Hub = _hub;
             Config = _config;
             log = _log;
+            _appLifetime = appLifetime;
         }
 
-        public async Task StartAsync(CancellationToken cancellationToken)
+        public Task StartAsync(CancellationToken cancellationToken)
         {
             log.LogInformation("Starting...");
 
-            bool regenConfig = false;
-            //if (args.Length > 0 && args[0] == "regenConfig")
-            //    regenConfig = true;
+            CancellationTokenSource? _cancellationTokenSource = null;
 
-            await Config.LoadConfiguration(regenConfig);
-            await Hub.Initialize();
-
-            //var config = await Configuration.LoadConfiguration(regenConfig);
-            //var thermo = new Thermostat(config);
-            //if (config.IotHubConnectionString is null)
-            //{
-            //    Console.WriteLine("WARN: Iot Connection String not configured");
-            //}
-
-            while (!cancellationToken.IsCancellationRequested)
+            _appLifetime.ApplicationStarted.Register(() =>
             {
-                var message = await Thermo.Refresh();
+                _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-                try
+                _applicationTask = Task.Run(async () =>
                 {
-                    await Hub.SendIotMessage(message);
-                }
-                catch
-                {
-                    //pokemon handler
-                    // we don't want a connection problem preventing the thermostat to work
-                }
+                    bool regenConfig = false;
+                    //if (args.Length > 0 && args[0] == "regenConfig")
+                    //    regenConfig = true;
 
-                await Task.Delay(Interval * 1000);
-            }
+                    await Config.LoadConfiguration(regenConfig);
+
+                    while (!_cancellationTokenSource.IsCancellationRequested)
+                    {
+                        var message = await Thermo.Refresh();
+
+                        try
+                        {
+                            Hub.SendIotMessage(message);
+                            await Task.Delay(Interval * 1000, _cancellationTokenSource.Token);
+                        }
+                        catch
+                        {
+                            //pokemon handler
+                            // we don't want a connection problem preventing the thermostat to work
+                        }
+                    }
+
+                    _appLifetime.StopApplication();
+                });
+            });
+
+            _appLifetime.ApplicationStopping.Register(() =>
+            {
+                log.LogInformation("Application is stopping");
+                _cancellationTokenSource?.Cancel();
+            });
+
+            return Task.CompletedTask;
         }
 
-        public Task StopAsync(CancellationToken cancellationToken)
+        public async Task StopAsync(CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            if (_applicationTask != null)
+            {
+                await _applicationTask;
+            }
+
+            log.LogInformation($"Exiting...");
         }
     }
 }

@@ -11,11 +11,11 @@ namespace Nerdostat.Device
 {
     class Program
     {
-        private const int Interval = 5 * 60;
         private static async Task Main(string[] args)
         {
             await Host.CreateDefaultBuilder(args)
-                .UseContentRoot(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location))
+                .UseSystemd()
+                .UseContentRoot(Path.GetDirectoryName(System.AppContext.BaseDirectory))
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddHostedService<HostedThermostat>()

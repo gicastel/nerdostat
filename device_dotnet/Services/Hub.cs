@@ -5,6 +5,8 @@ using Nerdostat.Device.Models;
 using Nerdostat.Shared;
 using Newtonsoft.Json;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -30,7 +32,9 @@ namespace Nerdostat.Device.Services
 
         private volatile bool IsConnected;
 
-        private SemaphoreSlim deviceSemaphore = new(1, 1); 
+        private SemaphoreSlim deviceSemaphore = new(1, 1);
+
+        private Queue<APIMessage> skippedMessages;
 
         public Hub(Configuration _config, Thermostat _thermo, ILogger<Hub> _log)
         {
@@ -57,7 +61,7 @@ namespace Nerdostat.Device.Services
             var retryPolicy = new ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(5));
             client.SetRetryPolicy(retryPolicy);
             client.SetConnectionStatusChangesHandler((status, reason) => ConnectionChanged(status, reason));
-            client.OperationTimeoutInMilliseconds = 5 * 60 * 1000;
+            client.OperationTimeoutInMilliseconds =  270 * 1000;
             await client.OpenAsync();
             await ConfigureCallbacks();
             deviceSemaphore.Release();
@@ -65,26 +69,33 @@ namespace Nerdostat.Device.Services
 
         private async void ConnectionChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
+            string message = $"Connection Status: {status} : {reason}";
             switch (status)
             {
                 case ConnectionStatus.Connected:
-                    log.LogInformation($"Connetion Status: {status} : {reason}");
+                    log.LogInformation(message);
                     AzureStatusLed.TurnOn();
                     IsConnected = true;
+
+                    while (skippedMessages?.Count > 0)
+                    {
+                        await SendIotMessage(skippedMessages.Dequeue());
+                    }
+
                     break;
                 case ConnectionStatus.Disconnected_Retrying:
-                    log.LogWarning($"Connetion Status: {status} : {reason}");
+                    log.LogWarning(message);
                     AzureStatusLed.TurnOff();
                     IsConnected = false;
                     break;
                 case ConnectionStatus.Disconnected:
-                    log.LogWarning($"Connetion Status: {status} : {reason}");
+                    log.LogWarning(message);
                     AzureStatusLed.TurnOff();
                     IsConnected = false;
                     await Initialize();
                     break;
                 case ConnectionStatus.Disabled:
-                    log.LogError($"Connetion Status: {status} : {reason}");
+                    log.LogError(message);
                     AzureStatusLed.TurnOff();
                     IsConnected = false;
                     await Initialize();
@@ -170,21 +181,25 @@ namespace Nerdostat.Device.Services
 
         public async Task SendIotMessage(APIMessage message)
         {
-            using var cts = new CancellationTokenSource();
-            var blink = AzureStatusLed.Blink((decimal)0.1, (decimal)0.1, cts.Token);
+            if (client is null)
+                await Initialize();
+
             var messageString = JsonConvert.SerializeObject(message);
-            var messageBytes = Encoding.UTF8.GetBytes(messageString);
-            var iotMessage = new Message(messageBytes)
-            {
-                ContentEncoding = "utf-8",
-                ContentType = "application/json"
-            };
-
-            if (Config.TestDevice)
-                iotMessage.Properties.Add("testDevice", "true");
-
+            
             if (IsConnected)
             {
+                using var cts = new CancellationTokenSource();
+                var blink = AzureStatusLed.Blink((decimal)0.1, (decimal)0.1, cts.Token);
+                var messageBytes = Encoding.UTF8.GetBytes(messageString);
+                var iotMessage = new Message(messageBytes)
+                {
+                    ContentEncoding = "utf-8",
+                    ContentType = "application/json"
+                };
+
+                if (Config.TestDevice)
+                    iotMessage.Properties.Add("testDevice", "true");
+
                 try
                 {
                     await client.SendEventAsync(iotMessage);
@@ -203,7 +218,10 @@ namespace Nerdostat.Device.Services
             }
             else
             {
-                log.LogWarning($"Skipped message: {messageString}");
+                skippedMessages ??= new();
+
+                skippedMessages.Enqueue(message);
+                log.LogWarning($"Enqueued message: {messageString}");
             }
         }
     }
