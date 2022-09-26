@@ -5,6 +5,7 @@ using Nerdostat.Shared;
 using System;
 using System.Device.Gpio;
 using System.Threading.Tasks;
+using UnitsNet;
 
 namespace Nerdostat.Device.Services
 {
@@ -29,16 +30,17 @@ namespace Nerdostat.Device.Services
             Config = _config;
             log = _log;
 
-            HeaterRelay = new (HeaterRelayPinNumber, log);
-            StatusLed = new (StatusLedPinNumber, log);
+            HeaterRelay = new (HeaterRelayPinNumber, log, "Heater Relay");
+            StatusLed = new (StatusLedPinNumber, log, "Heater Led");
         }
 
 
         public async Task<APIMessage> Refresh()
         {
-            (double temperature, double relativeHumidity) = await ReadValues();
+            var status = ReadValues().ConfigureAwait(false);
             var setpoint = GetCurrentSetpoint();
-
+            
+            (double temperature, double relativeHumidity) = await status;
             var diff = Convert.ToDecimal(temperature) - setpoint;
 
             if (Math.Abs(diff) > Config.Threshold)
@@ -56,7 +58,7 @@ namespace Nerdostat.Device.Services
             if (Config.OverrideUntil.HasValue)
                 overrideSecondsRemaining = Convert.ToInt32((Config.OverrideUntil.Value - DateTime.Now).TotalSeconds);
 
-            await Config.SaveConfiguration();
+            Config.SaveConfiguration();
 
             var msg = new APIMessage()
             {
@@ -100,6 +102,8 @@ namespace Nerdostat.Device.Services
             {
                 if (Config.OverrideUntil.Value >= DateTime.Now)
                     return true;
+                else
+                    Config.OverrideUntil = null;
             }
 
             return false;
@@ -130,22 +134,35 @@ namespace Nerdostat.Device.Services
 #if DEBUG
             return await GenerateValues();
 #endif
-            using var controller = new GpioController();
-            var sensor = new Dht22(DhtPinNumber, PinNumberingScheme.Board, controller);
-            var temp = sensor.Temperature;
-            var hum = sensor.Humidity;
-
+            bool tempOk = false;
+            bool humOk = false;
+            Temperature temp;
+            RelativeHumidity hum;
             int wait = 1000;
-            while (!sensor.IsLastReadSuccessful)
+
+            using (var controller = new GpioController())
             {
-                log.LogWarning("Sensor read failed");
-                if (wait < 4999)
-                    wait += 500;
-                await Task.Delay(wait);
-                temp = sensor.Temperature;
-                hum = sensor.Humidity;
+                var sensor = new Dht22(DhtPinNumber, PinNumberingScheme.Board, controller);
+
+                tempOk = sensor.TryReadTemperature(out temp);
+                humOk = sensor.TryReadHumidity(out hum);
+
+                while (!tempOk || !humOk)
+                {
+                    log.LogWarning("Sensor read failed");
+                    if (wait < 4999)
+                        wait += 500;
+                    await Task.Delay(wait).ConfigureAwait(false);
+
+                    if (!tempOk)
+                        tempOk = sensor.TryReadTemperature(out temp);
+
+                    if (!humOk)
+                        humOk = sensor.TryReadHumidity(out hum);
+                }
             }
             log.LogInformation("Sensor read OK");
+
             return (temp.DegreesCelsius, hum.Percent);
         }
 

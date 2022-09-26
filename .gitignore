@@ -4,3 +4,5 @@
 deploy.ps1
 /device_dotnet/pub
 /api/Properties/ServiceDependencies/nerdostat-api - Zip Deploy
+/dev.ps1
+/device_dotnet/pub_classic.zip

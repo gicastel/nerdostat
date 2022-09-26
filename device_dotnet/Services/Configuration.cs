@@ -61,12 +61,14 @@ namespace Nerdostat.Device.Services
 
         private const string configFilePath = "config.json";
 
+        public int Interval = 5;
+
         public Configuration()
         {
 
         }
 
-        public async Task LoadConfiguration(bool regenConfig)
+        public void LoadConfiguration(bool regenConfig)
         {
             FileInfo cfgFile = new FileInfo(configFilePath);
             if (!cfgFile.Exists || regenConfig)
@@ -81,14 +83,14 @@ namespace Nerdostat.Device.Services
 
                 using (StreamWriter wr = new StreamWriter(configFilePath, false))
                 {
-                    await wr.WriteAsync(content);
+                    wr.Write(content);
                 }
             }
             else
             {
                 using (StreamReader sr = new StreamReader(configFilePath))
                 {
-                    string content = await sr.ReadToEndAsync();
+                    string content = sr.ReadToEnd();
 
                     Configuration loaded = JsonConvert.DeserializeObject<Configuration>(content);
 
@@ -106,13 +108,13 @@ namespace Nerdostat.Device.Services
             }
         }
 
-        public async Task SaveConfiguration()
+        public void SaveConfiguration()
         {
             FileInfo cfgFile = new FileInfo(configFilePath);
             string content = JsonConvert.SerializeObject(this);
             using (StreamWriter wr = new StreamWriter(configFilePath, false))
             {
-                await wr.WriteAsync(content);
+                wr.Write(content);
             }
         }
 

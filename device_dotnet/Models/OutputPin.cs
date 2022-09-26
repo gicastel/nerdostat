@@ -11,12 +11,14 @@ namespace Nerdostat.Device.Models
         private bool On;
         public int Pin;
 
-        private readonly ILogger logger;
+        private readonly ILogger Log;
+        private readonly string Name;
 
-        public OutputPin(int pinNumber, ILogger _logger)
+        public OutputPin(int pinNumber, ILogger _logger, string name)
         {
             Pin = pinNumber;
-            logger = _logger;
+            Log = _logger;
+            Name = name;
         }
 
         public void TurnOn()
@@ -27,7 +29,7 @@ namespace Nerdostat.Device.Models
             Controller.Write(Pin, PinValue.High);
 
             On = true;
-            Console.WriteLine($"INFO: Led {Pin} On");
+            Log.LogInformation($"{Name} ON");
         }
 
         public void TurnOff()
@@ -38,7 +40,7 @@ namespace Nerdostat.Device.Models
             Controller.Write(Pin, PinValue.Low);
 
             On = false;
-            Console.WriteLine($"INFO: Led {Pin} Off");
+            Log.LogInformation($"{Name} OFF");
         }
 
         public async Task Blink(decimal OnDuration, decimal OffDuration, CancellationToken cts)
@@ -46,6 +48,7 @@ namespace Nerdostat.Device.Models
             using var Controller = new GpioController();
             Controller.OpenPin(Pin);
             Controller.SetPinMode(Pin, PinMode.Output);
+            Log.LogInformation($"{Name} blinking");
 
             while (!cts.IsCancellationRequested)
             {
@@ -54,9 +57,9 @@ namespace Nerdostat.Device.Models
                 Controller.Write(Pin, PinValue.Low);
                 await Task.Delay(Convert.ToInt32(OffDuration * 1000), CancellationToken.None);
             }
-            Controller.Write(Pin, PinValue.Low);
-
-            On = false;
+            Controller.Write(Pin, On? PinValue.High : PinValue.Low);
+            
+            Log.LogInformation($"{Name} {(On? "ON" : "OFF")}");
         }
 
         public bool IsOn() => On;

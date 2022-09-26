@@ -13,14 +13,14 @@ namespace Nerdostat.Device.Services
     {
         private readonly ILogger log;
         private readonly Thermostat Thermo;
-        private readonly Hub Hub;
+        private readonly HubManager Hub;
         private readonly Configuration Config;
         private readonly IHostApplicationLifetime _appLifetime;
 
         private Task? _applicationTask;
         private const int Interval = 5 * 60;
 
-        public HostedThermostat(Thermostat _thermo, Hub _hub, Configuration _config, ILogger<HostedThermostat> _log, IHostApplicationLifetime appLifetime)
+        public HostedThermostat(Thermostat _thermo, HubManager _hub, Configuration _config, ILogger<HostedThermostat> _log, IHostApplicationLifetime appLifetime)
         {
             Thermo = _thermo;
             Hub = _hub;
@@ -33,7 +33,7 @@ namespace Nerdostat.Device.Services
         {
             log.LogInformation("Starting...");
 
-            CancellationTokenSource? _cancellationTokenSource = null;
+            CancellationTokenSource _cancellationTokenSource = null;
 
             _appLifetime.ApplicationStarted.Register(() =>
             {
@@ -45,30 +45,41 @@ namespace Nerdostat.Device.Services
                     //if (args.Length > 0 && args[0] == "regenConfig")
                     //    regenConfig = true;
 
-                    await Config.LoadConfiguration(regenConfig);
+                    Config.LoadConfiguration(regenConfig);
 
                     while (!_cancellationTokenSource.IsCancellationRequested)
                     {
-                        var message = await Thermo.Refresh();
+                        var message = await Thermo.Refresh().ConfigureAwait(false);
 
                         try
                         {
-                            Hub.SendIotMessage(message);
-                            await Task.Delay(Interval * 1000, _cancellationTokenSource.Token);
+                            var delay = Task.Delay(Config.Interval * 60 * 1000, _cancellationTokenSource.Token);
+                            using var hubCancellationTS = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token);
+                            var sendData = Hub.SendIotMessage(message, hubCancellationTS.Token).ConfigureAwait(false);
+                            //var sendData = Hub.SendIotMessage(message).ConfigureAwait(false);
+                            await delay;
+                            if (!sendData.GetAwaiter().IsCompleted)
+                            { 
+                                hubCancellationTS.Cancel();
+                            }
                         }
-                        catch
+                        catch (OperationCanceledException) {  } //pass
+                        catch (Exception ex) 
                         {
                             //pokemon handler
                             // we don't want a connection problem preventing the thermostat to work
+                            log.LogError("Exception in main loop", ex);
                         }
                     }
 
+                    log.LogWarning("Application escaped the main loop");
                     _appLifetime.StopApplication();
                 });
             });
 
             _appLifetime.ApplicationStopping.Register(() =>
             {
+                Config.SaveConfiguration();
                 log.LogInformation("Application is stopping");
                 _cancellationTokenSource?.Cancel();
             });
