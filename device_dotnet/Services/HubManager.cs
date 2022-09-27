@@ -27,9 +27,9 @@ namespace Nerdostat.Device.Services
         private readonly Configuration Config;
         private readonly ILogger log;
 
-        private DeviceClient client;
-
-        private volatile bool IsConnected;
+        private static volatile DeviceClient client;
+        private static volatile ConnectionStatus deviceStatus;
+        private static bool IsDeviceConnected => deviceStatus == ConnectionStatus.Connected;
 
         private SemaphoreSlim deviceSemaphore = new(1, 1);
 
@@ -49,27 +49,24 @@ namespace Nerdostat.Device.Services
         {
             try
             {
-                await deviceSemaphore.WaitAsync().ConfigureAwait(false);
-                IsConnected = false;
-                if (client != null)
+                if (ShouldClientBeInitialized(deviceStatus))
                 {
-                    await client.DisposeAsync().ConfigureAwait(false);
+                    await deviceSemaphore.WaitAsync();
+                    if (ShouldClientBeInitialized(deviceStatus))
+                    {
+                        if (client != null)
+                        {
+                            await client.DisposeAsync();
+                        }
+
+                        client = DeviceClient.CreateFromConnectionString(Config.IotHubConnectionString, TransportType.Mqtt);
+
+                        var retryPolicy = new ExponentialBackoff(10, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(5));
+                        client.SetRetryPolicy(retryPolicy);
+                        client.OperationTimeoutInMilliseconds = (uint)(((Config.Interval * 60) - 30) * 1000);
+                        client.SetConnectionStatusChangesHandler(ConnectionStatusChangedAsync);
+                    }
                 }
-
-                var options = new ClientOptions
-                {
-                    SdkAssignsMessageId = SdkAssignsMessageId.WhenUnset,
-                };
-
-                client = DeviceClient.CreateFromConnectionString(Config.IotHubConnectionString, TransportType.Mqtt, options);
-                
-                var retryPolicy = new ExponentialBackoff(10, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(5));
-                client.SetRetryPolicy(retryPolicy);
-                client.OperationTimeoutInMilliseconds = (uint)(((Config.Interval * 60) - 30) * 1000);
-                //await client.OpenAsync();
-                client.SetConnectionStatusChangesHandler(async (status, reason) => ConnectionChanged(status, reason));
-                // need this to Open the connection
-                await ConfigureCallbacks().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -79,37 +76,35 @@ namespace Nerdostat.Device.Services
             {
                 deviceSemaphore.Release();
             }
+            // retry transient
+            await client.OpenAsync();
+            await ConfigureCallbacks();
         }
 
-        private async void ConnectionChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
+
+        private async void ConnectionStatusChangedAsync(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
             string message = $"Connection Status: {status} : {reason}";
+            deviceStatus = status;
             switch (status)
             {
                 case ConnectionStatus.Connected:
                     log.LogInformation(message);
                     AzureStatusLed.TurnOn();
-                    IsConnected = true;
 
                     while (skippedMessages.TryDequeue(out var apiMessage))
                     {
-                        await SendIotMessage(apiMessage, null).ConfigureAwait(false);
+                        await SendIotMessage(apiMessage, null);
                     }
                     break;
                 case ConnectionStatus.Disconnected_Retrying:
                     log.LogWarning(message);
                     AzureStatusLed.TurnOff();
-                    IsConnected = false;
                     break;
                 case ConnectionStatus.Disconnected:
                 case ConnectionStatus.Disabled:
                     log.LogWarning(message);
-                    AzureStatusLed.TurnOff();
-                    IsConnected = false;
-                    await deviceSemaphore.WaitAsync().ConfigureAwait(false);
-                    client.Dispose();
-                    client = null;
-                    deviceSemaphore.Release();
+                    await Initialize();
                     break;
             }
         }
@@ -124,14 +119,14 @@ namespace Nerdostat.Device.Services
                 client.SetMethodHandlerAsync(DeviceMethods.SetAwayOn, SetAwayOn, null)
             };
 
-            await Task.WhenAll(callbacks).ConfigureAwait(false);
+            await Task.WhenAll(callbacks);
 
         }
 
         private async Task<MethodResponse> RefreshThermoData(MethodRequest methodRequest, object userContext)
         {
             log.LogInformation($"{DeviceMethods.ReadNow}");
-            var thermoData = await Thermo.Refresh().ConfigureAwait(false);
+            var thermoData = await Thermo.Refresh();
             var message = new APIMessage()
             {
                 Timestamp = DateTime.Now,
@@ -157,7 +152,7 @@ namespace Nerdostat.Device.Services
             Thermo.OverrideSetpoint(
                 Convert.ToDecimal(input.Setpoint),
                 Convert.ToInt32(input.Hours));
-            return await RefreshThermoData(methodRequest, userContext).ConfigureAwait(false);
+            return await RefreshThermoData(methodRequest, userContext);
         }
 
         private async Task<MethodResponse> ClearSetpoint(MethodRequest methodRequest, object userContext)
@@ -165,7 +160,7 @@ namespace Nerdostat.Device.Services
             log.LogInformation($"WEBR: {DeviceMethods.ClearManualSetPoint}");
 
             Thermo.ReturnToProgram();
-            return await RefreshThermoData(methodRequest, userContext).ConfigureAwait(false);
+            return await RefreshThermoData(methodRequest, userContext);
         }
 
         private async Task<MethodResponse> SetAwayOn(MethodRequest methodRequest, object userContext)
@@ -173,23 +168,26 @@ namespace Nerdostat.Device.Services
             log.LogInformation($"WEBR: {DeviceMethods.SetAwayOn}");
 
             Thermo.SetAway();
-            return await RefreshThermoData(methodRequest, userContext).ConfigureAwait(false);
+            return await RefreshThermoData(methodRequest, userContext);
         }
 
         public async Task SendIotMessage(APIMessage message, CancellationToken? hubOperationToken)
         {
             var messageString = JsonConvert.SerializeObject(message);
-            if (client is null)
+            var messageBytes = Encoding.UTF8.GetBytes(messageString);
+            var iotMessage = new Message(messageBytes)
             {
-                if (deviceSemaphore.CurrentCount == 1)
-                    await Initialize().ConfigureAwait(false);
-                else
-                {
-                    //in fase di inizializzazione
-                    EnqueueMessage(message, messageString);
-                }
-            }
+                ContentEncoding = "utf-8",
+                ContentType = "application/json"
+            };
 
+            if (Config.TestDevice)
+                iotMessage.Properties.Add("testDevice", "true");
+
+            if (ShouldClientBeInitialized(deviceStatus))
+            {
+                await Initialize();
+            }
 
             CancellationTokenSource currentOpCts;
             if (hubOperationToken.HasValue)
@@ -198,28 +196,16 @@ namespace Nerdostat.Device.Services
             {
                 currentOpCts = new CancellationTokenSource();
             }
-            //currentOpCts.CancelAfter(((Config.Interval * 60) - 30) * 1000);
+            currentOpCts.CancelAfter(((Config.Interval * 60) - 30) * 1000);
 
-            if (IsConnected)
+            if (IsDeviceConnected)
             {
-                var messageBytes = Encoding.UTF8.GetBytes(messageString);
-                var iotMessage = new Message(messageBytes)
-                {
-                    ContentEncoding = "utf-8",
-                    ContentType = "application/json"
-                };
-
-                if (Config.TestDevice)
-                    iotMessage.Properties.Add("testDevice", "true");
-
-                var blink = AzureStatusLed.Blink((decimal)0.1, (decimal)0.1, currentOpCts.Token).ConfigureAwait(false);
+                var blink = AzureStatusLed.Blink((decimal)0.1, (decimal)0.1, currentOpCts.Token);
                 try
                 {
-                    await client.SendEventAsync(iotMessage, currentOpCts.Token).ConfigureAwait(false);
+                    await client.SendEventAsync(iotMessage, currentOpCts.Token);
                     currentOpCts.Cancel();
                     await blink;
-                    //AzureStatusLed.TurnOn();
-                    //IsConnected = true;
                     log.LogInformation($"{messageString}");
                 }
                 catch (OperationCanceledException canc)
@@ -230,8 +216,6 @@ namespace Nerdostat.Device.Services
                 catch (Exception ex)
                 {
                     log.LogError($"Generic exception", ex.ToString());
-                    //AzureStatusLed.TurnOff();
-                    //IsConnected = false;
                     EnqueueMessage(message, messageString);
                 }
             }
@@ -247,6 +231,11 @@ namespace Nerdostat.Device.Services
         {
             skippedMessages.Enqueue(message);
             log.LogWarning($"Enqueued message: {messageString}");
+        }
+
+        private bool ShouldClientBeInitialized(ConnectionStatus connectionStatus)
+        {
+            return (connectionStatus == ConnectionStatus.Disconnected || connectionStatus == ConnectionStatus.Disabled);
         }
     }
 }
