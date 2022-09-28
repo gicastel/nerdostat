@@ -49,16 +49,16 @@ namespace Nerdostat.Device.Services
 
                     while (!_cancellationTokenSource.IsCancellationRequested)
                     {
-                        var message = await Thermo.Refresh().ConfigureAwait(false);
+                        var message = await Thermo.Refresh();
 
                         try
                         {
                             var delay = Task.Delay(Config.Interval * 60 * 1000, _cancellationTokenSource.Token);
                             using var hubCancellationTS = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token);
-                            var sendData = Hub.SendIotMessage(message, hubCancellationTS.Token).ConfigureAwait(false);
+                            var sendData = Hub.TrySendMessage(message, hubCancellationTS.Token);
                             //var sendData = Hub.SendIotMessage(message).ConfigureAwait(false);
                             await delay;
-                            if (!sendData.GetAwaiter().IsCompleted)
+                            if (!sendData.IsCompleted)
                             { 
                                 hubCancellationTS.Cancel();
                             }

@@ -1,5 +1,4 @@
 using Microsoft.Azure.Devices.Client;
-using Microsoft.Azure.Devices.Shared;
 using Microsoft.Extensions.Logging;
 using Nerdostat.Device.Models;
 using Nerdostat.Shared;
@@ -7,7 +6,6 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -45,13 +43,13 @@ namespace Nerdostat.Device.Services
             skippedMessages = new();
         }
 
-        public async Task Initialize()
+        public async Task Initialize(CancellationToken sourceToken)
         {
             try
             {
                 if (ShouldClientBeInitialized(deviceStatus))
                 {
-                    await deviceSemaphore.WaitAsync();
+                    await deviceSemaphore.WaitAsync(sourceToken);
                     if (ShouldClientBeInitialized(deviceStatus))
                     {
                         if (client != null)
@@ -63,7 +61,7 @@ namespace Nerdostat.Device.Services
 
                         var retryPolicy = new ExponentialBackoff(10, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(5));
                         client.SetRetryPolicy(retryPolicy);
-                        client.OperationTimeoutInMilliseconds = (uint)(((Config.Interval * 60) - 30) * 1000);
+                        //client.OperationTimeoutInMilliseconds = (uint)(((Config.Interval * 60) - 30) * 1000);
                         client.SetConnectionStatusChangesHandler(ConnectionStatusChangedAsync);
                     }
                 }
@@ -76,9 +74,18 @@ namespace Nerdostat.Device.Services
             {
                 deviceSemaphore.Release();
             }
+
             // retry transient
-            await client.OpenAsync();
-            await ConfigureCallbacks();
+            try
+            {
+                await client.OpenAsync(sourceToken);
+                await ConfigureCallbacks(sourceToken);
+            }
+            catch (Exception ex) 
+            { 
+                log.LogError(ex.ToString()); 
+            }
+
         }
 
 
@@ -91,11 +98,6 @@ namespace Nerdostat.Device.Services
                 case ConnectionStatus.Connected:
                     log.LogInformation(message);
                     AzureStatusLed.TurnOn();
-
-                    while (skippedMessages.TryDequeue(out var apiMessage))
-                    {
-                        await SendIotMessage(apiMessage, null);
-                    }
                     break;
                 case ConnectionStatus.Disconnected_Retrying:
                     log.LogWarning(message);
@@ -104,23 +106,23 @@ namespace Nerdostat.Device.Services
                 case ConnectionStatus.Disconnected:
                 case ConnectionStatus.Disabled:
                     log.LogWarning(message);
-                    await Initialize();
+                    // è questo che blocca tutto?
+                    //await Initialize();
                     break;
             }
         }
 
-        private async Task ConfigureCallbacks()
+        private async Task ConfigureCallbacks(CancellationToken sourceToken)
         {
             var callbacks = new List<Task>
             {
-                client.SetMethodHandlerAsync(DeviceMethods.ReadNow, RefreshThermoData, null),
-                client.SetMethodHandlerAsync(DeviceMethods.SetManualSetpoint, OverrideSetpoint, null),
-                client.SetMethodHandlerAsync(DeviceMethods.ClearManualSetPoint, ClearSetpoint, null),
-                client.SetMethodHandlerAsync(DeviceMethods.SetAwayOn, SetAwayOn, null)
+                client.SetMethodHandlerAsync(DeviceMethods.ReadNow, RefreshThermoData, null, sourceToken),
+                client.SetMethodHandlerAsync(DeviceMethods.SetManualSetpoint, OverrideSetpoint, null, sourceToken),
+                client.SetMethodHandlerAsync(DeviceMethods.ClearManualSetPoint, ClearSetpoint, null, sourceToken),
+                client.SetMethodHandlerAsync(DeviceMethods.SetAwayOn, SetAwayOn, null, sourceToken)
             };
 
             await Task.WhenAll(callbacks);
-
         }
 
         private async Task<MethodResponse> RefreshThermoData(MethodRequest methodRequest, object userContext)
@@ -171,7 +173,43 @@ namespace Nerdostat.Device.Services
             return await RefreshThermoData(methodRequest, userContext);
         }
 
-        public async Task SendIotMessage(APIMessage message, CancellationToken? hubOperationToken)
+        public async Task TrySendMessage(APIMessage message, CancellationToken hostedThermoToken)
+        {
+            var currentOpCts = CancellationTokenSource.CreateLinkedTokenSource(hostedThermoToken);
+
+            if (ShouldClientBeInitialized(deviceStatus))
+            {
+                await Initialize(currentOpCts.Token);
+            }
+
+            if (IsDeviceConnected)
+            {
+                var blink = AzureStatusLed.Blink((decimal)0.1, (decimal)0.1, currentOpCts.Token);
+
+                while (skippedMessages.TryDequeue(out var enquequedMEssage))
+                {
+                    bool status = await SendMessage(enquequedMEssage, currentOpCts.Token);
+                    if (!status)
+                    {
+                        // se qualcosa non va, evitiamo di mettere la cera / togliere la cera per sempre
+                        break;
+                    }
+                }
+
+                await SendMessage(message, currentOpCts.Token);
+
+                currentOpCts.Cancel();
+                await blink;
+            }
+            else
+            {
+                EnqueueMessage(message);
+            }
+
+            currentOpCts.Dispose();
+        }
+
+        private async Task<bool> SendMessage(APIMessage message, CancellationToken token)
         {
             var messageString = JsonConvert.SerializeObject(message);
             var messageBytes = Encoding.UTF8.GetBytes(messageString);
@@ -184,53 +222,31 @@ namespace Nerdostat.Device.Services
             if (Config.TestDevice)
                 iotMessage.Properties.Add("testDevice", "true");
 
-            if (ShouldClientBeInitialized(deviceStatus))
+            try
             {
-                await Initialize();
+                await client.SendEventAsync(iotMessage, token);
+                log.LogInformation($"{messageString}");
             }
-
-            CancellationTokenSource currentOpCts;
-            if (hubOperationToken.HasValue)
-                currentOpCts = CancellationTokenSource.CreateLinkedTokenSource(hubOperationToken.Value);
-            else
+            catch (OperationCanceledException canc)
             {
-                currentOpCts = new CancellationTokenSource();
-            }
-            currentOpCts.CancelAfter(((Config.Interval * 60) - 30) * 1000);
-
-            if (IsDeviceConnected)
-            {
-                var blink = AzureStatusLed.Blink((decimal)0.1, (decimal)0.1, currentOpCts.Token);
-                try
-                {
-                    await client.SendEventAsync(iotMessage, currentOpCts.Token);
-                    currentOpCts.Cancel();
-                    await blink;
-                    log.LogInformation($"{messageString}");
-                }
-                catch (OperationCanceledException canc)
-                {
-                    //this only runs if the process is cancelled from the main loop.
-                    log.LogError("Operation cancelled", canc);
-                }
-                catch (Exception ex)
-                {
-                    log.LogError($"Generic exception", ex.ToString());
-                    EnqueueMessage(message, messageString);
-                }
-            }
-            else
-            {
+                //this only runs if the process is cancelled from the main loop.
+                log.LogError("Operation cancelled", canc);
                 EnqueueMessage(message, messageString);
+                return false;
             }
-
-            currentOpCts.Dispose();
+            catch (Exception ex)
+            {
+                log.LogError($"Generic exception", ex.ToString());
+                EnqueueMessage(message, messageString);
+                return false;
+            }
+            return true;
         }
 
-        private void EnqueueMessage(APIMessage message, string messageString)
+        private void EnqueueMessage(APIMessage message, string messageString = null)
         {
             skippedMessages.Enqueue(message);
-            log.LogWarning($"Enqueued message: {messageString}");
+            log.LogWarning($"Enqueued: {messageString ?? JsonConvert.SerializeObject(message)}");
         }
 
         private bool ShouldClientBeInitialized(ConnectionStatus connectionStatus)
