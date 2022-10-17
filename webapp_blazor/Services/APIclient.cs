@@ -35,6 +35,7 @@ namespace BlazorClient.Services
         public async Task<APIMessage> GetData()
         {
             var response = await _client.GetAsync(_client.BaseAddress + "read");
+            response.EnsureSuccessStatusCode();
             var msg = await response.Content.ReadFromJsonAsync<APIResponse<APIMessage>>();
             return msg.payload;
         }
@@ -43,6 +44,7 @@ namespace BlazorClient.Services
         {
             var setpoint = new SetPoint(newTempValue, duration ?? 4);
             var response = await _client.PostAsJsonAsync<SetPoint>(_client.BaseAddress + "setpoint/add", setpoint);
+            response.EnsureSuccessStatusCode();
             var msg = await response.Content.ReadFromJsonAsync<APIResponse<APIMessage>>();
             return msg.payload;
         }
@@ -50,6 +52,7 @@ namespace BlazorClient.Services
         public async Task<APIMessage> ResetSetPoint()
         {
             var response = await _client.PostAsync(_client.BaseAddress + "setpoint/clear", null);
+            response.EnsureSuccessStatusCode();
             var msg = await response.Content.ReadFromJsonAsync<APIResponse<APIMessage>>();
             return msg.payload;
         }
@@ -57,6 +60,7 @@ namespace BlazorClient.Services
         public async Task<ProgramMessage> GetProgram()
         {
             var response = await _client.GetAsync(_client.BaseAddress + "program");
+            response.EnsureSuccessStatusCode();
             var msg = await response.Content.ReadFromJsonAsync<APIResponse<ProgramMessage>>();
             return msg.payload;
         }
@@ -64,6 +68,7 @@ namespace BlazorClient.Services
         public async Task<ProgramMessage> UpdateProgram(ProgramMessage program)
         {
             var response = await _client.PostAsJsonAsync(_client.BaseAddress + "program", program);
+            response.EnsureSuccessStatusCode();
             var msg = await response.Content.ReadFromJsonAsync<APIResponse<ProgramMessage>>();
             return msg.payload;
         }

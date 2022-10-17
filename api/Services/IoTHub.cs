@@ -22,7 +22,6 @@ namespace API.Services
         public static async Task<CloudToDeviceMethodResult> ReadNow()
         {
             var methodInvocation = new CloudToDeviceMethod(DeviceMethods.ReadNow) { ResponseTimeout = TimeSpan.FromSeconds(Timeout) };
-
             return await Client.InvokeDeviceMethodAsync(deviceID, methodInvocation);
         }
 

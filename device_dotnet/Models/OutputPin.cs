@@ -1,18 +1,24 @@
+using Microsoft.Extensions.Logging;
 using System;
 using System.Device.Gpio;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Nerdostat.Device
+namespace Nerdostat.Device.Models
 {
-    public class OuputPin
+    public class OutputPin
     {
         private bool On;
-        private readonly int Pin;
+        public int Pin;
 
-        public OuputPin(int pinNumber)
+        private readonly ILogger Log;
+        private readonly string Name;
+
+        public OutputPin(int pinNumber, ILogger _logger, string name)
         {
-            this.Pin = pinNumber;
+            Pin = pinNumber;
+            Log = _logger;
+            Name = name;
         }
 
         public void TurnOn()
@@ -20,11 +26,10 @@ namespace Nerdostat.Device
             using var Controller = new GpioController();
             Controller.OpenPin(Pin);
             Controller.SetPinMode(Pin, PinMode.Output);
-            
             Controller.Write(Pin, PinValue.High);
-            On = true;
 
-            Console.WriteLine($"INFO: Led {Pin} On");
+            On = true;
+            Log.LogInformation($"{Name} ON");
         }
 
         public void TurnOff()
@@ -32,11 +37,10 @@ namespace Nerdostat.Device
             using var Controller = new GpioController();
             Controller.OpenPin(Pin);
             Controller.SetPinMode(Pin, PinMode.Output);
-
             Controller.Write(Pin, PinValue.Low);
-            On = false;
 
-            Console.WriteLine($"INFO: Led {Pin} Off");
+            On = false;
+            Log.LogInformation($"{Name} OFF");
         }
 
         public async Task Blink(decimal OnDuration, decimal OffDuration, CancellationToken cts)
@@ -44,6 +48,7 @@ namespace Nerdostat.Device
             using var Controller = new GpioController();
             Controller.OpenPin(Pin);
             Controller.SetPinMode(Pin, PinMode.Output);
+            Log.LogInformation($"{Name} blinking");
 
             while (!cts.IsCancellationRequested)
             {
@@ -52,12 +57,13 @@ namespace Nerdostat.Device
                 Controller.Write(Pin, PinValue.Low);
                 await Task.Delay(Convert.ToInt32(OffDuration * 1000), CancellationToken.None);
             }
-            Controller.Write(Pin, PinValue.Low);
-
-            On = false;
+            Controller.Write(Pin, On? PinValue.High : PinValue.Low);
+            
+            Log.LogInformation($"{Name} {(On? "ON" : "OFF")}");
         }
 
         public bool IsOn() => On;
-    }
 
+    }
 }
+

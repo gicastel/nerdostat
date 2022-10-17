@@ -1,44 +1,26 @@
-﻿using System;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Nerdostat.Device.Services;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Nerdostat.Device
 {
     class Program
     {
-        private const int Interval = 5*60;
-        static async Task Main(string[] args)
+        private static async Task Main(string[] args)
         {
-            Console.WriteLine("Starting...");
-
-            bool regenConfig = false;
-            if (args.Length > 0 && args[0] == "regenConfig")
-                regenConfig = true;
-
-            var config = await Configuration.LoadConfiguration(regenConfig);
-            var thermo = new Thermostat(config);
-            if (config.IotHubConnectionString is null)
-            {
-                Console.WriteLine("WARN: Iot Connection String not configured");
-            }
-
-            var hub = await Hub.Initialize(config.IotHubConnectionString, config.TestDevice, thermo);
-
-            while (true)
-            {
-                var message = await thermo.Refresh();
-
-                try
+            await Host.CreateDefaultBuilder(args)
+                .UseSystemd()
+                .UseContentRoot(Path.GetDirectoryName(System.AppContext.BaseDirectory))
+                .ConfigureServices((hostContext, services) =>
                 {
-                    await hub.SendIotMessage(message);
-                }
-                catch 
-                {
-                    //pokemon handler
-                    // we don't want a connection problem preventing the thermostat to work
-                }
-
-                await Task.Delay(Interval * 1000);
-            }
+                    services.AddHostedService<HostedThermostat>()
+                        .AddSingleton<Configuration>()
+                        .AddSingleton<Thermostat>()
+                        .AddSingleton<HubManager>();
+                })
+                .RunConsoleAsync();
         }
     }
 }
