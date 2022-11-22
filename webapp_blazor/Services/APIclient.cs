@@ -42,7 +42,7 @@ namespace BlazorClient.Services
 
         public async Task<APIMessage> ModifySetPoint(double newTempValue, long? remainingMinutes)
         {
-            var epoch = DateTime.Now.AddMinutes(remainingMinutes ?? 4 * 60).ToEpochSeconds();
+            var epoch = DateTime.Now.AddMinutes(remainingMinutes ?? 4 * 60).ToEpoch();
             var setpoint = new SetPoint(newTempValue, epoch);
             var response = await _client.PostAsJsonAsync<SetPoint>(_client.BaseAddress + "setpoint/add", setpoint);
             response.EnsureSuccessStatusCode();

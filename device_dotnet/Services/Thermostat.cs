@@ -78,7 +78,7 @@ namespace Nerdostat.Device.Services
         {
             Config.OverrideSetpoint = setpoint;
             if (untilEpoch.HasValue)
-                Config.OverrideUntil = untilEpoch.Value.FromEpochSeconds();
+                Config.OverrideUntil = untilEpoch.Value.ToDateTime();
         }
 
         public void ReturnToProgram()
