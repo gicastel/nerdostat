@@ -20,7 +20,7 @@ else
             </div>
             <div class="row"><input type="button" id="temp_minus" class="btn btn-lg btn-primary btn-block" value="-" @onclick="TempDown" /></div>
             <div class="row row-eq-height">
-                <div id="OverrideDuration" class="col-5 text-center"><input type="range" step="60" min="0" max="720"
+                <div id="OverrideDuration" class="col-5 text-center"><input type="range" step="15" min="0" max="720"
                @bind-value="@OverrideEndInMinutes" @bind-value:event="oninput"
                @onmouseup="ChangeSetpointDuration" @ontouchend="ChangeSetpointDuration"></div>
                <div class="col-5 text-center">@OverrideUntil</div>

@@ -39,7 +39,7 @@ namespace API
                 var request = await req.Content.ReadAsStringAsync();
                 var requestData = JsonConvert.DeserializeObject<SetPointMessage>(request);
 
-                return new OkObjectResult(await IoTHub.SetManualSetpoint(requestData.Setpoint, requestData.Hours));
+                return new OkObjectResult(await IoTHub.SetManualSetpoint(requestData.Setpoint, requestData.UntilEpoch));
             }
             catch (Exception ex)
             {

@@ -56,7 +56,7 @@ namespace Nerdostat.Device.Services
 
             int overrideSecondsRemaining = 0;
             if (Config.OverrideUntil.HasValue)
-                overrideSecondsRemaining = Convert.ToInt32((Config.OverrideUntil.Value - DateTime.Now).TotalSeconds);
+                overrideSecondsRemaining = Convert.ToInt32((Config.OverrideUntil.Value - new DateTime(1970, 1, 1)).TotalSeconds);
 
             Config.SaveConfiguration();
 
@@ -74,11 +74,11 @@ namespace Nerdostat.Device.Services
             return msg;
         }
 
-        public void OverrideSetpoint(decimal setpoint, int? hours)
+        public void OverrideSetpoint(decimal setpoint, long? untilEpoch)
         {
             Config.OverrideSetpoint = setpoint;
-            var setpointuntil = DateTime.Now.AddHours(Convert.ToDouble(hours.HasValue ? hours : Config.OverrideDefaultDuration));
-            Config.OverrideUntil = setpointuntil;
+            if (untilEpoch.HasValue)
+                Config.OverrideUntil = untilEpoch.Value.FromEpochSeconds();
         }
 
         public void ReturnToProgram()

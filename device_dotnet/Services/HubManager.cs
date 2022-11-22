@@ -106,7 +106,7 @@ namespace Nerdostat.Device.Services
                 case ConnectionStatus.Disconnected:
                 case ConnectionStatus.Disabled:
                     log.LogWarning(message);
-                    // è questo che blocca tutto?
+                    // ï¿½ questo che blocca tutto?
                     //await Initialize();
                     break;
             }
@@ -153,7 +153,7 @@ namespace Nerdostat.Device.Services
             var input = JsonConvert.DeserializeObject<SetPointMessage>(methodRequest.DataAsJson);
             Thermo.OverrideSetpoint(
                 Convert.ToDecimal(input.Setpoint),
-                Convert.ToInt32(input.Hours));
+                Convert.ToInt64(input.UntilEpoch));
             return await RefreshThermoData(methodRequest, userContext);
         }
 
