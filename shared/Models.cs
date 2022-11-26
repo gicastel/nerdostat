@@ -37,7 +37,7 @@ namespace Nerdostat.Shared
     public class SetPointMessage
     {
         public double Setpoint { get; set; }
-        public float? Hours { get; set; }
+        public long? UntilEpoch { get; set; }
     }
 
     public static class DeviceMethods

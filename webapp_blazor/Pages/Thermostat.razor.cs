@@ -49,8 +49,12 @@ namespace BlazorClient.Pages
 
         protected void RefreshStatus()
         {
+            // overrideEnd = epoch seconds
             if (status.OverrideEnd.HasValue)
-                this.OverrideEndInMinutes = Convert.ToInt32(status.OverrideEnd / 60000);
+            {
+                DateTime setpointExpiration = status.OverrideEnd.Value.ToDateTime();
+                this.OverrideEndInMinutes = (int)(setpointExpiration - DateTime.Now).TotalMinutes;
+            }
             else
                 this.OverrideEndInMinutes = 0;
 
@@ -71,19 +75,15 @@ namespace BlazorClient.Pages
         private async Task ModifySetpoint(double tempVariation)
         {
             double newTemp = status.CurrentSetpoint + tempVariation;
-            double? overrideHours = null;
-            if (OverrideEndInMinutes > 0)
-                // round it up, since it's an int
-                overrideHours = (OverrideEndInMinutes / 60) + 1;
 
-            status = await _client.ModifySetPoint(newTemp, overrideHours);
+            status = await _client.ModifySetPoint(newTemp, OverrideEndInMinutes);
             RefreshStatus();
         }
 
 
         protected async Task ChangeSetpointDuration()
         {
-            status = await _client.ModifySetPoint(status.CurrentSetpoint, OverrideEndInMinutes / 60);
+            status = await _client.ModifySetPoint(status.CurrentSetpoint, OverrideEndInMinutes);
             RefreshStatus();
         }
 

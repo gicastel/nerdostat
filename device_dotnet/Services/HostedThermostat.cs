@@ -17,7 +17,7 @@ namespace Nerdostat.Device.Services
         private readonly Configuration Config;
         private readonly IHostApplicationLifetime _appLifetime;
 
-        private Task? _applicationTask;
+        private Task _applicationTask;
         private const int Interval = 5 * 60;
 
         public HostedThermostat(Thermostat _thermo, HubManager _hub, Configuration _config, ILogger<HostedThermostat> _log, IHostApplicationLifetime appLifetime)
