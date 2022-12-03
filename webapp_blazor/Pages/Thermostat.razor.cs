@@ -14,7 +14,7 @@ namespace BlazorClient.Pages
         protected APIMessage status { get; set; }
 
         protected int OverrideEndInMinutes { get; set; }
-        protected string OverrideUntil => (OverrideEndInMinutes > 0 ? DateTime.Now.AddMinutes(Convert.ToDouble(OverrideEndInMinutes)).ToString("HH:mm dd/MM") : "--" );
+        protected string OverrideUntilString => (OverrideEndInMinutes > 0 ? DateTime.Now.AddMinutes(Convert.ToDouble(OverrideEndInMinutes)).ToString("HH:mm dd/MM") : "--" );
 
         protected string ConnectionIcon = ConnectionStatusIcon.OFF;
 
@@ -64,19 +64,19 @@ namespace BlazorClient.Pages
 
         protected async Task TempUp()
         {
-            await ModifySetpoint(0.5);
+            await ModifySetpoint(0.5M);
         }
 
         protected async Task TempDown()
         {
-            await ModifySetpoint(-0.5);
+            await ModifySetpoint(-0.5M);
         }
 
-        private async Task ModifySetpoint(double tempVariation)
+        private async Task ModifySetpoint(decimal tempVariation)
         {
-            double newTemp = status.CurrentSetpoint + tempVariation;
+            decimal newTemp = status.CurrentSetpoint + tempVariation;
 
-            status = await _client.ModifySetPoint(newTemp, OverrideEndInMinutes);
+            status = await _client.ModifySetPoint(newTemp, (OverrideEndInMinutes > 0 ? (long?)OverrideEndInMinutes + 1 : null));
             RefreshStatus();
         }
 

@@ -17,7 +17,7 @@ namespace Nerdostat.Shared
         public DateTime Timestamp { get; set; }
         public double Temperature { get; set; }
         public double Humidity { get; set; }
-        public double CurrentSetpoint { get; set; }
+        public decimal CurrentSetpoint { get; set; }
         public bool IsHeaterOn { get; set; }
         public long? OverrideEnd { get; set; }
         public long? HeaterOn { get; set; }
@@ -36,7 +36,7 @@ namespace Nerdostat.Shared
 
     public class SetPointMessage
     {
-        public double Setpoint { get; set; }
+        public decimal Setpoint { get; set; }
         public long? UntilEpoch { get; set; }
     }
 

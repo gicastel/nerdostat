@@ -62,7 +62,7 @@ namespace Nerdostat.Device.Services
 
             var msg = new APIMessage()
             {
-                CurrentSetpoint = (double)setpoint,
+                CurrentSetpoint = setpoint,
                 HeaterOn = heaterTime,
                 Humidity = relativeHumidity,
                 Temperature = temperature,
@@ -77,8 +77,11 @@ namespace Nerdostat.Device.Services
         public void OverrideSetpoint(decimal setpoint, long? untilEpoch)
         {
             Config.OverrideSetpoint = setpoint;
+            
             if (untilEpoch.HasValue)
                 Config.OverrideUntil = untilEpoch.Value.ToDateTime();
+            else
+                Config.OverrideUntil = DateTime.Now.AddHours(Config.OverrideDefaultDuration);
         }
 
         public void ReturnToProgram()

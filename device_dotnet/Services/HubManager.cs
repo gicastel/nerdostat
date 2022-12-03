@@ -152,8 +152,8 @@ namespace Nerdostat.Device.Services
             log.LogInformation($"WEBR: {DeviceMethods.SetManualSetpoint}");
             var input = JsonConvert.DeserializeObject<SetPointMessage>(methodRequest.DataAsJson);
             Thermo.OverrideSetpoint(
-                Convert.ToDecimal(input.Setpoint),
-                Convert.ToInt64(input.UntilEpoch));
+                input.Setpoint,
+                input.UntilEpoch);
             return await RefreshThermoData(methodRequest, userContext);
         }
 
@@ -184,7 +184,7 @@ namespace Nerdostat.Device.Services
 
             if (IsDeviceConnected)
             {
-                var blink = AzureStatusLed.Blink((decimal)0.1, (decimal)0.1, currentOpCts.Token);
+                var blink = AzureStatusLed.Blink(0.1m, 0.1m, currentOpCts.Token);
 
                 while (skippedMessages.TryDequeue(out var enquequedMEssage))
                 {

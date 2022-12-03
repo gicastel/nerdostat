@@ -23,7 +23,7 @@ else
                 <div id="OverrideDuration" class="col-5 text-center"><input type="range" step="15" min="0" max="720"
                @bind-value="@OverrideEndInMinutes" @bind-value:event="oninput"
                @onmouseup="ChangeSetpointDuration" @ontouchend="ChangeSetpointDuration"></div>
-               <div class="col-5 text-center">@OverrideUntil</div>
+               <div class="col-5 text-center">@OverrideUntilString</div>
                 <div class="col-2 text-center"><input id="reset" type="button" class="btn btn-secondary" value="CE" @onclick="Reset"/></div>
             </div>
 

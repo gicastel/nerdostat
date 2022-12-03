@@ -38,7 +38,7 @@ namespace API.Services
             return await Client.InvokeDeviceMethodAsync(deviceID, methodInvocation);
         }
 
-        public static async Task<CloudToDeviceMethodResult> SetManualSetpoint(double setpoint, long? untilEpoch)
+        public static async Task<CloudToDeviceMethodResult> SetManualSetpoint(decimal setpoint, long? untilEpoch)
         {
             var methodInvocation = new CloudToDeviceMethod(DeviceMethods.SetManualSetpoint) { ResponseTimeout = TimeSpan.FromSeconds(Timeout) };
             JObject payload = new JObject();
