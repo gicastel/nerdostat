@@ -4,6 +4,7 @@ using Nerdostat.Device.Models;
 using Nerdostat.Shared;
 using System;
 using System.Device.Gpio;
+using System.Threading;
 using System.Threading.Tasks;
 using UnitsNet;
 
@@ -30,16 +31,16 @@ namespace Nerdostat.Device.Services
             Config = _config;
             log = _log;
 
-            HeaterRelay = new (HeaterRelayPinNumber, log, "Heater Relay");
-            StatusLed = new (StatusLedPinNumber, log, "Heater Led");
+            HeaterRelay = new(HeaterRelayPinNumber, log, "Heater Relay");
+            StatusLed = new(StatusLedPinNumber, log, "Heater Led");
         }
 
 
-        public async Task<APIMessage> Refresh()
+        public async Task<APIMessage> Refresh(CancellationToken token)
         {
-            var status = ReadValues().ConfigureAwait(false);
+            var status = ReadValues(token).ConfigureAwait(false);
             var setpoint = GetCurrentSetpoint();
-            
+
             (double temperature, double relativeHumidity) = await status;
             var diff = Convert.ToDecimal(temperature) - setpoint;
 
@@ -77,7 +78,7 @@ namespace Nerdostat.Device.Services
         public void OverrideSetpoint(decimal setpoint, long? untilEpoch)
         {
             Config.OverrideSetpoint = setpoint;
-            
+
             if (untilEpoch.HasValue)
                 Config.OverrideUntil = untilEpoch.Value.ToDateTime();
             else
@@ -96,7 +97,7 @@ namespace Nerdostat.Device.Services
             Config.OverrideUntil = DateTime.Now.AddYears(1);
         }
 
-#region Privates
+        #region Privates
 
 
         private bool IsSetpointOverridden()
@@ -127,15 +128,15 @@ namespace Nerdostat.Device.Services
             }
         }
 
-#endregion
+        #endregion
 
 
-#region Hardware
+        #region Hardware
 
-        private async Task<(double temperature, double relativeHumidity)> ReadValues()
+        private async Task<(double temperature, double relativeHumidity)> ReadValues(CancellationToken token)
         {
 #if DEBUG
-            return await GenerateValues();
+            return await GenerateValues(token);
 #endif
             bool tempOk = false;
             bool humOk = false;
@@ -143,8 +144,10 @@ namespace Nerdostat.Device.Services
             RelativeHumidity hum;
             int wait = 1000;
 
-            using (var controller = new GpioController())
+            try
             {
+                using var controller = new GpioController();
+
                 var sensor = new Dht22(DhtPinNumber, PinNumberingScheme.Board, controller);
 
                 tempOk = sensor.TryReadTemperature(out temp);
@@ -152,24 +155,32 @@ namespace Nerdostat.Device.Services
 
                 while (!tempOk || !humOk)
                 {
+
                     log.LogWarning("Sensor read failed");
                     if (wait < 4999)
                         wait += 500;
-                    await Task.Delay(wait).ConfigureAwait(false);
+                    await Task.Delay(wait, token).ConfigureAwait(false);
 
                     if (!tempOk)
                         tempOk = sensor.TryReadTemperature(out temp);
 
                     if (!humOk)
                         humOk = sensor.TryReadHumidity(out hum);
+
                 }
             }
+            catch (OperationCanceledException ex)
+            {
+                log.LogError("Sensor read cancelled!");
+                return (-99.0, -99.0);
+            }
+
             log.LogInformation("Sensor read OK");
 
             return (temp.DegreesCelsius, hum.Percent);
         }
 
-        private async ValueTask<(double temperature, double relativeHumidity)> GenerateValues()
+        private async ValueTask<(double temperature, double relativeHumidity)> GenerateValues(CancellationToken token)
         {
             log.LogInformation("Generated values");
             return (20, Random.Shared.Next(30, 90));
@@ -204,7 +215,7 @@ namespace Nerdostat.Device.Services
             return seconds;
         }
 
-#endregion
+        #endregion
 
     }
 }

@@ -128,7 +128,9 @@ namespace Nerdostat.Device.Services
         private async Task<MethodResponse> RefreshThermoData(MethodRequest methodRequest, object userContext)
         {
             log.LogInformation($"{DeviceMethods.ReadNow}");
-            var thermoData = await Thermo.Refresh();
+            using var cts = new CancellationTokenSource();
+            cts.CancelAfter(new TimeSpan(0, 0, 30));
+            var thermoData = await Thermo.Refresh(cts.Token);
             var message = new APIMessage()
             {
                 Timestamp = DateTime.Now,
