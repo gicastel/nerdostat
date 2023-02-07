@@ -18,7 +18,6 @@ namespace Nerdostat.Device.Services
         private readonly IHostApplicationLifetime _appLifetime;
 
         private Task _applicationTask;
-        private const int Interval = 5 * 60;
 
         public HostedThermostat(Thermostat _thermo, HubManager _hub, Configuration _config, ILogger<HostedThermostat> _log, IHostApplicationLifetime appLifetime)
         {
@@ -50,14 +49,13 @@ namespace Nerdostat.Device.Services
                     while (!_cancellationTokenSource.IsCancellationRequested)
                     {
                         using var maxOperationTimeout = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token);
-                        maxOperationTimeout.CancelAfter(TimeSpan.FromSeconds((Interval * 60) - 15));
+                        maxOperationTimeout.CancelAfter(TimeSpan.FromSeconds((Config.Interval * 60) - 15));
                         var delay = Task.Delay(Config.Interval * 60 * 1000, _cancellationTokenSource.Token);
 
                         try
                         {
                             var message = await Thermo.Refresh(maxOperationTimeout.Token);
                             var sendData = Hub.TrySendMessage(message, maxOperationTimeout.Token);
-                            //var sendData = Hub.SendIotMessage(message).ConfigureAwait(false);
                             await delay;
                         }
                         catch (OperationCanceledException) {  } //pass

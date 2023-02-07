@@ -41,16 +41,23 @@ namespace Nerdostat.Device.Services
             var status = ReadValues(token).ConfigureAwait(false);
             var setpoint = GetCurrentSetpoint();
 
-            (double temperature, double relativeHumidity) = await status;
-            var diff = Convert.ToDecimal(temperature) - setpoint;
+            (double? temperature, double? relativeHumidity) = await status;
+            
+            if (temperature.HasValue)
+            {           
+                var diff = Convert.ToDecimal(temperature.Value) - setpoint;
 
-            if (Math.Abs(diff) > Config.Threshold)
-            {
-                if (diff < 0)
-                    StartHeating();
-                else
-                    StopHeating();
+                if (Math.Abs(diff) > Config.Threshold)
+                {
+                    if (diff < 0)
+                        StartHeating();
+                    else
+                        StopHeating();
+                }
             }
+            else
+                //sensor failure => STACCAH STACCAH STACCAAAAAH
+                StopHeating();
 
             var heaterTime = GetHeatingTime();
             var heaterIsActive = HeaterRelay.IsOn();
@@ -133,7 +140,7 @@ namespace Nerdostat.Device.Services
 
         #region Hardware
 
-        private async Task<(double temperature, double relativeHumidity)> ReadValues(CancellationToken token)
+        private async Task<(double? temperature, double? relativeHumidity)> ReadValues(CancellationToken token)
         {
 #if DEBUG
             return await GenerateValues(token);
@@ -172,7 +179,7 @@ namespace Nerdostat.Device.Services
             catch (OperationCanceledException ex)
             {
                 log.LogError("Sensor read cancelled!");
-                return (-99.0, -99.0);
+                return (null, null);
             }
 
             log.LogInformation("Sensor read OK");
@@ -180,7 +187,7 @@ namespace Nerdostat.Device.Services
             return (temp.DegreesCelsius, hum.Percent);
         }
 
-        private async ValueTask<(double temperature, double relativeHumidity)> GenerateValues(CancellationToken token)
+        private async ValueTask<(double? temperature, double? relativeHumidity)> GenerateValues(CancellationToken token)
         {
             log.LogInformation("Generated values");
             return (20, Random.Shared.Next(30, 90));
