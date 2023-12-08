@@ -15,8 +15,8 @@ else
         <div class="container">
             <div class="row "><input type="button" id="temp_plus" class="btn btn-lg btn-danger btn-block" value="+" @onclick="TempUp"/></div>
             <div class="row row-eq-height">
-                <div id="tempValue" class="h3 font-weight-normal text-right col-6">@status.Temperature.ToString("##.#")</div>
-                <div id="setpointValue" class="h3 font-weight-normal text-right setpoint col-6">@status.CurrentSetpoint.ToString("##.#")</div>
+                <div id="tempValue" class="h3 font-weight-normal text-right col-6">@status.Temperature.Value.ToString("F1")</div>
+                <div id="setpointValue" class="h3 font-weight-normal text-right setpoint col-6">@status.CurrentSetpoint.ToString()</div>
             </div>
             <div class="row"><input type="button" id="temp_minus" class="btn btn-lg btn-primary btn-block" value="-" @onclick="TempDown" /></div>
             <div class="row row-eq-height">
@@ -37,7 +37,7 @@ else
             <div class="row row-eq-height">
                 <div class="h5 font-weight-normal text-center col-3">Humidity:</div>
                 <div class="h5 font-weight-normal text-center col-3">
-                    <div id="humidityValue">@status.Humidity.ToString("##")</div>
+                    <div id="humidityValue">@status.Humidity.Value.ToString()</div>
                     <div class="h5 font-weight-normal text-center col-3"></div>
                     <div class="h5 font-weight-normal text-center col-3"></div>
                 </div>

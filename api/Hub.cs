@@ -28,8 +28,10 @@ namespace API
                 return;
             }
 
-            log.LogMetric("Temperature", msg.Temperature);
-            log.LogMetric("Humidity", msg.Humidity);
+            if (msg.Temperature.HasValue)
+                log.LogMetric("Temperature", msg.Temperature.Value);
+            if (msg.Humidity.HasValue)
+                log.LogMetric("Humidity", msg.Humidity.Value);
             log.LogMetric("Setpoint", msg.CurrentSetpoint);
             log.LogMetric("HeaterOn", msg.HeaterOn);
 

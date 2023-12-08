@@ -41,16 +41,23 @@ namespace Nerdostat.Device.Services
             var status = ReadValues(token).ConfigureAwait(false);
             var setpoint = GetCurrentSetpoint();
 
-            (double temperature, double relativeHumidity) = await status;
-            var diff = Convert.ToDecimal(temperature) - setpoint;
+            (double? temperature, double? relativeHumidity) = await status;
+            
+            if (temperature.HasValue)
+            {           
+                var diff = Convert.ToDecimal(temperature.Value) - setpoint;
 
-            if (Math.Abs(diff) > Config.Threshold)
-            {
-                if (diff < 0)
-                    StartHeating();
-                else
-                    StopHeating();
+                if (Math.Abs(diff) > Config.Threshold)
+                {
+                    if (diff < 0)
+                        StartHeating();
+                    else
+                        StopHeating();
+                }
             }
+            else
+                //sensor failure => STACCAH STACCAH STACCAAAAAH
+                StopHeating();
 
             var heaterTime = GetHeatingTime();
             var heaterIsActive = HeaterRelay.IsOn();
@@ -133,7 +140,7 @@ namespace Nerdostat.Device.Services
 
         #region Hardware
 
-        private async Task<(double temperature, double relativeHumidity)> ReadValues(CancellationToken token)
+        private async Task<(double? temperature, double? relativeHumidity)> ReadValues(CancellationToken token)
         {
 #if DEBUG
             return await GenerateValues(token);
@@ -142,45 +149,64 @@ namespace Nerdostat.Device.Services
             bool humOk = false;
             Temperature temp;
             RelativeHumidity hum;
-            int wait = 1000;
+            int wait = 2000;
+            int loop = 1;
 
-            try
+            using (var controller = new GpioController())
             {
-                using var controller = new GpioController();
-
-                var sensor = new Dht22(DhtPinNumber, PinNumberingScheme.Board, controller);
-
-                tempOk = sensor.TryReadTemperature(out temp);
-                humOk = sensor.TryReadHumidity(out hum);
-
-                while (!tempOk || !humOk)
+                try
                 {
+                    var sensor = new Dht22(DhtPinNumber, PinNumberingScheme.Board, controller);
 
-                    log.LogWarning("Sensor read failed");
-                    if (wait < 4999)
-                        wait += 500;
-                    await Task.Delay(wait, token).ConfigureAwait(false);
+                    tempOk = sensor.TryReadTemperature(out temp);
+                    humOk = sensor.TryReadHumidity(out hum);
 
-                    if (!tempOk)
-                        tempOk = sensor.TryReadTemperature(out temp);
+                    humOk = humOk && hum.Percent >= 0 && hum.Percent <= 100;
+                    tempOk = tempOk && humOk;
 
-                    if (!humOk)
-                        humOk = sensor.TryReadHumidity(out hum);
+                    while (!tempOk || !humOk)
+                    {
+                        log.LogWarning("Sensor read failed");
+                        if (wait < 4999)
+                            wait += 500;
+                        await Task.Delay(wait, token).ConfigureAwait(false);
+
+                        if (!tempOk)
+                            tempOk = sensor.TryReadTemperature(out temp);
+
+                        if (!humOk)
+                            humOk = sensor.TryReadHumidity(out hum);
+
+                        humOk = humOk && hum.Percent >= 0 && hum.Percent <= 100;
+                        tempOk = tempOk && humOk;
+
+                        loop++;
+
+                        if (loop > 20)
+                            break;
+                    }
 
                 }
+                catch (OperationCanceledException ex)
+                {
+                    log.LogError(ex, "Sensor read cancelled!");
+                    return (null, null);
+                }
             }
-            catch (OperationCanceledException ex)
+
+            if (loop > 20)
             {
                 log.LogError("Sensor read cancelled!");
-                return (-99.0, -99.0);
+                return (null, null);
             }
-
-            log.LogInformation("Sensor read OK");
-
-            return (temp.DegreesCelsius, hum.Percent);
+            else
+            {
+                log.LogInformation("Sensor read OK");
+                return (temp.DegreesCelsius, hum.Percent);
+            }
         }
 
-        private async ValueTask<(double temperature, double relativeHumidity)> GenerateValues(CancellationToken token)
+        private async ValueTask<(double? temperature, double? relativeHumidity)> GenerateValues(CancellationToken token)
         {
             log.LogInformation("Generated values");
             return (20, Random.Shared.Next(30, 90));
