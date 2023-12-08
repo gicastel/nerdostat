@@ -106,7 +106,7 @@ namespace Nerdostat.Device.Services
                 case ConnectionStatus.Disconnected:
                 case ConnectionStatus.Disabled:
                     log.LogWarning(message);
-                    // � questo che blocca tutto?
+                    // è questo che blocca tutto?
                     //await Initialize();
                     break;
             }
@@ -227,18 +227,18 @@ namespace Nerdostat.Device.Services
             try
             {
                 await client.SendEventAsync(iotMessage, token);
-                log.LogInformation($"{messageString}");
+                log.LogInformation("{messageString}", messageString);
             }
             catch (OperationCanceledException canc)
             {
                 //this only runs if the process is cancelled from the main loop.
-                log.LogError("Operation cancelled", canc);
+                log.LogError("Operation cancelled: {canc}", canc);
                 EnqueueMessage(message, messageString);
                 return false;
             }
             catch (Exception ex)
             {
-                log.LogError($"Generic exception", ex.ToString());
+                log.LogError("Generic exception: {exception}", ex.ToString());
                 EnqueueMessage(message, messageString);
                 return false;
             }
@@ -248,7 +248,7 @@ namespace Nerdostat.Device.Services
         private void EnqueueMessage(APIMessage message, string messageString = null)
         {
             skippedMessages.Enqueue(message);
-            log.LogWarning($"Enqueued: {messageString ?? JsonConvert.SerializeObject(message)}");
+            log.LogWarning("Enqueued: {messageString}", messageString ?? JsonConvert.SerializeObject(message));
         }
 
         private bool ShouldClientBeInitialized(ConnectionStatus connectionStatus)

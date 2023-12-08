@@ -63,7 +63,7 @@ namespace Nerdostat.Device.Services
                         {
                             //pokemon handler
                             // we don't want a connection problem preventing the thermostat to work
-                            log.LogError("Exception in main loop", ex);
+                            log.LogError(ex, "Exception in main loop");
                         }
                     }
 
