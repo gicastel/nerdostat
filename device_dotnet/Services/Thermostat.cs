@@ -149,7 +149,7 @@ namespace Nerdostat.Device.Services
             bool humOk = false;
             Temperature temp;
             RelativeHumidity hum;
-            int wait = 2000;
+            int wait = 5000;
             int loop = 1;
 
             using (var controller = new GpioController())
@@ -167,15 +167,23 @@ namespace Nerdostat.Device.Services
                     while (!tempOk || !humOk)
                     {
                         log.LogWarning("Sensor read failed");
+                        
                         if (wait < 4999)
                             wait += 500;
+                        
                         await Task.Delay(wait, token).ConfigureAwait(false);
 
                         if (!tempOk)
+                        {
+                            log.LogWarning("Retrying temperature read");
                             tempOk = sensor.TryReadTemperature(out temp);
+                        }
 
                         if (!humOk)
+                        {
+                            log.LogWarning("Retrying humidity read");
                             humOk = sensor.TryReadHumidity(out hum);
+                        }
 
                         humOk = humOk && hum.Percent >= 0 && hum.Percent <= 100;
                         tempOk = tempOk && humOk;
