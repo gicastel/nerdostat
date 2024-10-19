@@ -194,10 +194,19 @@ namespace Nerdostat.Device.Services
                             break;
                     }
 
+                    sensor.Dispose();
+
                 }
                 catch (OperationCanceledException ex)
                 {
                     log.LogError(ex, "Sensor read cancelled!");
+                    log.LogWarning("Trying reset operation.. Finger crossed!");
+                    var dhtPin = new OutputPin(DhtPinNumber, log, "DHT22 Pin");
+                    dhtPin.TurnOff();
+                    await Task.Delay(250, token).ConfigureAwait(false);
+                    dhtPin.TurnOn();
+                    await Task.Delay(250, token).ConfigureAwait(false);
+                    dhtPin.TurnOff();
                     return (null, null);
                 }
             }
