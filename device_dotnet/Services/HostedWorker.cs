@@ -9,21 +9,31 @@ using System.Threading.Tasks;
 
 namespace Nerdostat.Device.Services
 {
-    internal class HostedThermostat : IHostedService
+    internal class HostedWorker : IHostedService
     {
         private readonly ILogger log;
         private readonly Thermostat Thermo;
         private readonly HubManager Hub;
         private readonly Configuration Config;
+        private readonly Datastore Store;
+        private readonly Predictor Predictor;
         private readonly IHostApplicationLifetime _appLifetime;
 
         private Task _applicationTask;
 
-        public HostedThermostat(Thermostat _thermo, HubManager _hub, Configuration _config, ILogger<HostedThermostat> _log, IHostApplicationLifetime appLifetime)
+        public HostedWorker(Thermostat _thermo, 
+            HubManager _hub, 
+            Configuration _config, 
+            Datastore _datastore,
+            Predictor _predictor,
+            ILogger<HostedWorker> _log, 
+            IHostApplicationLifetime appLifetime)
         {
             Thermo = _thermo;
             Hub = _hub;
             Config = _config;
+            Store = _datastore;
+            Predictor = _predictor;
             log = _log;
             _appLifetime = appLifetime;
         }
@@ -55,7 +65,19 @@ namespace Nerdostat.Device.Services
                         try
                         {
                             var message = await Thermo.Refresh(maxOperationTimeout.Token);
+                            if (message.Temperature.HasValue)
+                            {
+                                Store.AddNew(message);
+                            }
+                            
+                            if (Predictor.IsModelReady)
+                            { 
+                                var prediction =  Predictor.Predict(message);
+                                message.PredictedTemperature = prediction;
+                            }
+
                             var sendData = Hub.TrySendMessage(message, maxOperationTimeout.Token);
+                            await Task.Run(() => Predictor.Train(), maxOperationTimeout.Token);
                             await delay;
                         }
                         catch (OperationCanceledException) {  } //pass

@@ -21,6 +21,7 @@ namespace Nerdostat.Shared
         public bool IsHeaterOn { get; set; }
         public long? OverrideEnd { get; set; }
         public long? HeaterOn { get; set; }
+        public double? PredictedTemperature { get; set; }
     }
 
     public class APIResponse<T>

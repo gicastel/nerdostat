@@ -15,10 +15,12 @@ namespace Nerdostat.Device
                 .UseContentRoot(Path.GetDirectoryName(System.AppContext.BaseDirectory))
                 .ConfigureServices((hostContext, services) =>
                 {
-                    services.AddHostedService<HostedThermostat>()
+                    services.AddHostedService<HostedWorker>()
                         .AddSingleton<Configuration>()
                         .AddSingleton<Thermostat>()
-                        .AddSingleton<HubManager>();
+                        .AddSingleton<HubManager>()
+                        .AddSingleton<Datastore>()
+                        .AddSingleton<Predictor>();
                 })
                 .RunConsoleAsync();
         }

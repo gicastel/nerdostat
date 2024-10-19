@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "API + Device",
+    "Projects": [
+      {
+        "Path": "api\\API.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "device_dotnet\\Nerdostat.Device.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
