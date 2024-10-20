@@ -34,7 +34,8 @@ namespace API
                 log.LogMetric("Humidity", msg.Humidity.Value);
             log.LogMetric("Setpoint", msg.CurrentSetpoint);
             log.LogMetric("HeaterOn", msg.HeaterOn);
-
+            if (msg.PredictedTemperature.HasValue)
+                log.LogMetric("PredictedTemperature", msg.PredictedTemperature.Value);
 
             HttpClient pbi = new HttpClient();
 

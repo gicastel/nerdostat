@@ -77,7 +77,7 @@ namespace Nerdostat.Device.Services
                             }
 
                             var sendData = Hub.TrySendMessage(message, maxOperationTimeout.Token);
-                            await Task.Run(() => Predictor.Train(), maxOperationTimeout.Token);
+                            var retrain = Task.Run(() => Predictor.Train(), maxOperationTimeout.Token);
                             await delay;
                         }
                         catch (OperationCanceledException) {  } //pass

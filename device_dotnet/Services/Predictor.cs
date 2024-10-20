@@ -48,13 +48,13 @@ namespace Nerdostat.Device.Services
 
                 var messages = Datastore.GetMessages(10);
 
-                if (messages.Count < (60 / 5) * 24 * 10)
+                if (messages.Count < 24)
                 {
-                    log.LogInformation($"Not enough data to train model. Need at least 10 days of data.");
+                    log.LogInformation("Not enough data to train model. Need at least 24 messages, got {count}", messages.Count);
                     return;
                 }
 
-                log.LogInformation($"Getting data...");
+                log.LogInformation("Getting data...");
                 foreach (var message in messages)
                 {
                     if (message.Temperature is null)
@@ -66,9 +66,9 @@ namespace Nerdostat.Device.Services
                     {
                         temperature = Convert.ToSingle(message.Temperature.Value),
                         humidity = Convert.ToSingle(message.Humidity.Value),
-                        heaterStatus = Convert.ToSingle(message.IsHeaterOn),
+                        // heaterStatus = Convert.ToSingle(message.IsHeaterOn),
 
-                        heaterOnLast5Minutes = message.HeaterOn ?? 0,
+                        // heaterOnLast5Minutes = message.HeaterOn ?? 0,
 
                         tempLag1 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 1)),
                         tempLag2 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 2)),
@@ -82,22 +82,34 @@ namespace Nerdostat.Device.Services
                         tempLag10 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 10)),
                         tempLag11 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 11)),
                         tempLag12 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 12)),
+                        tempLag13 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 13)),
+                        tempLag14 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 14)),
+                        tempLag15 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 15)),
+                        tempLag16 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 16)),
+                        tempLag17 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 17)),
+                        tempLag18 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 18)),
+                        tempLag19 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 19)),
+                        tempLag20 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 20)),
+                        tempLag21 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 21)),
+                        tempLag22 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 22)),
+                        tempLag23 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 23)),
+                        tempLag24 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 24)),
 
-                        heaterOnLast10Minutes = Datastore.GetHeaterOnTime(10),
-                        heaterOnLast15Minutes = Datastore.GetHeaterOnTime(15),
-                        heaterOnLast30Minutes = Datastore.GetHeaterOnTime(30),
-                        heaterOnLastHour = Datastore.GetHeaterOnTime(60),
-                        heaterOnLast2Hours = Datastore.GetHeaterOnTime(120),
-                        heaterOnLast4Hours = Datastore.GetHeaterOnTime(240),
-                        heaterOnLast8Hours = Datastore.GetHeaterOnTime(480),
-                        heaterOnLast12Hours = Datastore.GetHeaterOnTime(720),
-                        heaterOnLast24Hours = Datastore.GetHeaterOnTime(1440)
+                        // heaterOnLast10Minutes = Datastore.GetHeaterOnTime(10),
+                        // heaterOnLast15Minutes = Datastore.GetHeaterOnTime(15),
+                        // heaterOnLast30Minutes = Datastore.GetHeaterOnTime(30),
+                        // heaterOnLastHour = Datastore.GetHeaterOnTime(60),
+                        // heaterOnLast2Hours = Datastore.GetHeaterOnTime(120),
+                        // heaterOnLast4Hours = Datastore.GetHeaterOnTime(240),
+                        // heaterOnLast8Hours = Datastore.GetHeaterOnTime(480),
+                        // heaterOnLast12Hours = Datastore.GetHeaterOnTime(720),
+                        // heaterOnLast24Hours = Datastore.GetHeaterOnTime(1440)
                     };
 
                     inputData.Add(id);
                 }
 
-                log.LogInformation($"Data loaded. Training model...");
+                log.LogInformation("Data loaded. Training model...");
 
                 var mlContext = new MLContext();
                 var data = mlContext.Data.LoadFromEnumerable(inputData);
@@ -130,21 +142,30 @@ namespace Nerdostat.Device.Services
                 //                    .Append(mlContext.Regression.Trainers.FastForest(new FastForestRegressionTrainer.Options() { LabelColumnName = @"temperature_f", FeatureColumnName = @"Features" }));
                 //                    //.Append(mlContext.Regression.Trainers.FastForest(new FastForestRegressionTrainer.Options() { NumberOfTrees = 4, NumberOfLeaves = 4, FeatureFraction = 1F, LabelColumnName = @"temperature", FeatureColumnName = @"Features" }));
 
+                var notNulls = mlContext.Data.FilterRowsByMissingValues(data, new[] {
+                    @"temperature",
+                    @"humidity",
+                    @"tempLag1", @"tempLag2", @"tempLag3", @"tempLag4", @"tempLag5", @"tempLag6", @"tempLag7", @"tempLag8", @"tempLag9", @"tempLag10", @"tempLag11", @"tempLag12",
+                    @"tempLag13", @"tempLag14", @"tempLag15", @"tempLag16", @"tempLag17", @"tempLag18", @"tempLag19", @"tempLag20", @"tempLag21", @"tempLag22", @"tempLag23", @"tempLag24" }
+                    );
+
                 var predictStep = mlContext.Transforms
                     .Concatenate(@"Features", new[] {
                     @"humidity",
-                    @"heaterStatus",
+                    // @"heaterStatus",
                     @"tempLag1", @"tempLag2", @"tempLag3", @"tempLag4", @"tempLag5", @"tempLag6", @"tempLag7", @"tempLag8", @"tempLag9", @"tempLag10", @"tempLag11", @"tempLag12",
-                    @"heaterOnLast5Minutes", @"heaterOnLast10Minutes", @"heaterOnLast15Minutes", @"heaterOnLast30Minutes", @"heaterOnLastHour", @"heaterOnLast2Hours", @"heaterOnLast4Hours", @"heaterOnLast8Hours", @"heaterOnLast12Hours", @"heaterOnLast24Hours" })
+                    @"tempLag13", @"tempLag14", @"tempLag15", @"tempLag16", @"tempLag17", @"tempLag18", @"tempLag19", @"tempLag20", @"tempLag21", @"tempLag22", @"tempLag23", @"tempLag24"})
+
+                    // @"heaterOnLast5Minutes", @"heaterOnLast10Minutes", @"heaterOnLast15Minutes", @"heaterOnLast30Minutes", @"heaterOnLastHour", @"heaterOnLast2Hours", @"heaterOnLast4Hours", @"heaterOnLast8Hours", @"heaterOnLast12Hours", @"heaterOnLast24Hours" })
                                     .Append(mlContext.Regression.Trainers.FastForest(new FastForestRegressionTrainer.Options() { LabelColumnName = @"temperature", FeatureColumnName = @"Features" }));
                 //.Append(mlContext.Regression.Trainers.FastForest(new FastForestRegressionTrainer.Options() { NumberOfTrees = 4, NumberOfLeaves = 4, FeatureFraction = 1F, LabelColumnName = @"temperature", FeatureColumnName = @"Features" }));
 
 
                 var pipeline = predictStep;
 
-                var model = pipeline.Fit(data);
+                var model = pipeline.Fit(notNulls);
 
-                log.LogInformation($"Model trained. Saving model...");
+                log.LogInformation("Model trained. Saving model...");
 
                 DataViewSchema dataViewSchema = data.Schema;
                 using (var fs = File.Create(modelPath))
@@ -152,11 +173,11 @@ namespace Nerdostat.Device.Services
                     mlContext.Model.Save(model, dataViewSchema, fs);
                 }
 
-                log.LogInformation($"Model saved. Plotting R2...");
+                log.LogInformation("Model saved. Plotting R2...");
 
                 PlotRSquaredValues(data, model, "temperature");
 
-                log.LogInformation($"R2 plotted.");
+                log.LogInformation("R2 plotted.");
             }
             catch (Exception ex)
             {
@@ -168,7 +189,7 @@ namespace Nerdostat.Device.Services
         {
             try
             {
-                log.LogInformation($"Predicting temperature...");
+                log.LogInformation("Predicting temperature...");
 
                 var mlContext = new MLContext();
                 ITransformer mlModel;
@@ -182,8 +203,7 @@ namespace Nerdostat.Device.Services
                 var input = new InputData
                 {
                     humidity = Convert.ToSingle(message.Humidity.Value),
-                    heaterStatus = Convert.ToSingle(message.IsHeaterOn),
-                    heaterOnLast5Minutes = message.HeaterOn ?? 0,
+                    // heaterStatus = Convert.ToSingle(message.IsHeaterOn),
 
                     tempLag1 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 1)),
                     tempLag2 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 2)),
@@ -197,20 +217,33 @@ namespace Nerdostat.Device.Services
                     tempLag10 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 10)),
                     tempLag11 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 11)),
                     tempLag12 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 12)),
+                    tempLag13 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 13)),
+                    tempLag14 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 14)),
+                    tempLag15 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 15)),
+                    tempLag16 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 16)),
+                    tempLag17 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 17)),
+                    tempLag18 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 18)),
+                    tempLag19 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 19)),
+                    tempLag20 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 20)),
+                    tempLag21 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 21)),
+                    tempLag22 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 22)),
+                    tempLag23 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 23)),
+                    tempLag24 = Datastore.GetFirstTemperatureBefore(message.Timestamp.AddMinutes(5 * 24)),
 
-                    heaterOnLast10Minutes = Datastore.GetHeaterOnTime(10),
-                    heaterOnLast15Minutes = Datastore.GetHeaterOnTime(15),
-                    heaterOnLast30Minutes = Datastore.GetHeaterOnTime(30),
-                    heaterOnLastHour = Datastore.GetHeaterOnTime(60),
-                    heaterOnLast2Hours = Datastore.GetHeaterOnTime(120),
-                    heaterOnLast4Hours = Datastore.GetHeaterOnTime(240),
-                    heaterOnLast8Hours = Datastore.GetHeaterOnTime(480),
-                    heaterOnLast12Hours = Datastore.GetHeaterOnTime(720),
-                    heaterOnLast24Hours = Datastore.GetHeaterOnTime(1440)
+                    // heaterOnLast5Minutes = message.HeaterOn ?? 0,
+                    // heaterOnLast10Minutes = Datastore.GetHeaterOnTime(10),
+                    // heaterOnLast15Minutes = Datastore.GetHeaterOnTime(15),
+                    // heaterOnLast30Minutes = Datastore.GetHeaterOnTime(30),
+                    // heaterOnLastHour = Datastore.GetHeaterOnTime(60),
+                    // heaterOnLast2Hours = Datastore.GetHeaterOnTime(120),
+                    // heaterOnLast4Hours = Datastore.GetHeaterOnTime(240),
+                    // heaterOnLast8Hours = Datastore.GetHeaterOnTime(480),
+                    // heaterOnLast12Hours = Datastore.GetHeaterOnTime(720),
+                    // heaterOnLast24Hours = Datastore.GetHeaterOnTime(1440)
                 };
                 log.LogInformation("Predicting...");
                 var prediction = predictionEngine.Predict(input);
-                log.LogInformation($"Predicted temperature: {prediction.temperature}");
+                log.LogInformation("Predicted temperature: {pred}", prediction.temperature);
                 return prediction.temperature;
             }
             catch (Exception ex)

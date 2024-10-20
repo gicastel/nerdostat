@@ -147,8 +147,8 @@ namespace Nerdostat.Device.Services
 #endif
             bool tempOk = false;
             bool humOk = false;
-            Temperature temp;
-            RelativeHumidity hum;
+            Temperature temp = default;
+            RelativeHumidity hum = default;
             int wait = 5000;
             int loop = 1;
 
@@ -195,25 +195,23 @@ namespace Nerdostat.Device.Services
                     }
 
                     sensor.Dispose();
-
                 }
                 catch (OperationCanceledException ex)
                 {
-                    log.LogError(ex, "Sensor read cancelled!");
-                    log.LogWarning("Trying reset operation.. Finger crossed!");
-                    var dhtPin = new OutputPin(DhtPinNumber, log, "DHT22 Pin");
-                    dhtPin.TurnOff();
-                    await Task.Delay(250, token).ConfigureAwait(false);
-                    dhtPin.TurnOn();
-                    await Task.Delay(250, token).ConfigureAwait(false);
-                    dhtPin.TurnOff();
-                    return (null, null);
+                    log.LogError(ex, "Sensor read cancelled due to a timeout");
                 }
             }
 
             if (loop > 20)
             {
-                log.LogError("Sensor read cancelled!");
+                log.LogError("Sensor read failed after 20 attempts");
+                log.LogWarning("Trying reset operation.. Finger crossed!");
+                var dhtPin = new OutputPin(DhtPinNumber, log, "DHT22 Pin");
+                dhtPin.TurnOff();
+                await Task.Delay(250, token).ConfigureAwait(false);
+                dhtPin.TurnOn();
+                await Task.Delay(250, token).ConfigureAwait(false);
+                dhtPin.TurnOff();
                 return (null, null);
             }
             else

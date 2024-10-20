@@ -127,7 +127,8 @@ namespace Nerdostat.Device.Services
 
         private async Task<MethodResponse> RefreshThermoData(MethodRequest methodRequest, object userContext)
         {
-            log.LogInformation($"{DeviceMethods.ReadNow}");
+            log.BeginScope(DeviceMethods.ReadNow);
+            log.LogInformation("Reading data from thermo");
             using var cts = new CancellationTokenSource();
             cts.CancelAfter(new TimeSpan(0, 0, 30));
             var thermoData = await Thermo.Refresh(cts.Token);
@@ -143,7 +144,7 @@ namespace Nerdostat.Device.Services
             };
 
             var stringData = JsonConvert.SerializeObject(message);
-            log.LogInformation("Reply " + stringData);
+            log.LogInformation("Reply {data}", stringData);
             var byteData = Encoding.UTF8.GetBytes(stringData);
             return new MethodResponse(byteData, 200);
         }
@@ -151,7 +152,7 @@ namespace Nerdostat.Device.Services
         private async Task<MethodResponse> OverrideSetpoint(MethodRequest methodRequest, object userContext)
         {
 
-            log.LogInformation($"WEBR: {DeviceMethods.SetManualSetpoint}");
+            log.LogInformation("WEBR: {method}", DeviceMethods.SetManualSetpoint);
             var input = JsonConvert.DeserializeObject<SetPointMessage>(methodRequest.DataAsJson);
             Thermo.OverrideSetpoint(
                 input.Setpoint,
@@ -161,7 +162,7 @@ namespace Nerdostat.Device.Services
 
         private async Task<MethodResponse> ClearSetpoint(MethodRequest methodRequest, object userContext)
         {
-            log.LogInformation($"WEBR: {DeviceMethods.ClearManualSetPoint}");
+            log.LogInformation("WEBR: {method}", DeviceMethods.ClearManualSetPoint);
 
             Thermo.ReturnToProgram();
             return await RefreshThermoData(methodRequest, userContext);
@@ -169,7 +170,7 @@ namespace Nerdostat.Device.Services
 
         private async Task<MethodResponse> SetAwayOn(MethodRequest methodRequest, object userContext)
         {
-            log.LogInformation($"WEBR: {DeviceMethods.SetAwayOn}");
+            log.LogInformation("WEBR: {method}", DeviceMethods.SetAwayOn);
 
             Thermo.SetAway();
             return await RefreshThermoData(methodRequest, userContext);
@@ -232,13 +233,13 @@ namespace Nerdostat.Device.Services
             catch (OperationCanceledException canc)
             {
                 //this only runs if the process is cancelled from the main loop.
-                log.LogError("Operation cancelled: {canc}", canc);
+                log.LogError(canc, "Operation cancelled");
                 EnqueueMessage(message, messageString);
                 return false;
             }
             catch (Exception ex)
             {
-                log.LogError("Generic exception: {exception}", ex.ToString());
+                log.LogError(ex, "Generic exception");
                 EnqueueMessage(message, messageString);
                 return false;
             }

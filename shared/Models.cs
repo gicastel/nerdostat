@@ -10,6 +10,7 @@ namespace Nerdostat.Shared
         public double? Humidity { get; set; }
         public double CurrentSetpoint { get; set; }
         public double HeaterOn { get; set; }
+        public double? PredictedTemperature { get; set; }
     }
 
     public class APIMessage

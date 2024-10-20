@@ -27,6 +27,19 @@ namespace Nerdostat.Device.Models
             public float tempLag10 { get; set; }
             public float tempLag11 { get; set; }
             public float tempLag12 { get; set; }
+            public float tempLag13 { get; set; }
+            public float tempLag14 { get; set; }
+            public float tempLag15 { get; set; }
+            public float tempLag16 { get; set; }
+            public float tempLag17 { get; set; }
+            public float tempLag18 { get; set; }
+            public float tempLag19 { get; set; }
+            public float tempLag20 { get; set; }
+            public float tempLag21 { get; set; }
+            public float tempLag22 { get; set; }
+            public float tempLag23 { get; set; }
+            public float tempLag24 { get; set; }
+            
 
             public float heaterOnLast5Minutes { get; set; }
             public float heaterOnLast10Minutes { get; set; }

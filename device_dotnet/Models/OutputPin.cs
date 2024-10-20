@@ -29,7 +29,7 @@ namespace Nerdostat.Device.Models
             Controller.Write(Pin, PinValue.High);
 
             On = true;
-            Log.LogInformation($"{Name} ON");
+            Log.LogInformation("{Name} OFF", Name);
         }
 
         public void TurnOff()
@@ -40,7 +40,7 @@ namespace Nerdostat.Device.Models
             Controller.Write(Pin, PinValue.Low);
 
             On = false;
-            Log.LogInformation($"{Name} OFF");
+            Log.LogInformation("{Name} OFF", Name);
         }
 
         public async Task Blink(decimal OnDuration, decimal OffDuration, CancellationToken cts)
@@ -48,7 +48,7 @@ namespace Nerdostat.Device.Models
             using var Controller = new GpioController();
             Controller.OpenPin(Pin);
             Controller.SetPinMode(Pin, PinMode.Output);
-            Log.LogInformation($"{Name} blinking");
+            Log.LogInformation("{Name} blinking", Name);
 
             while (!cts.IsCancellationRequested)
             {
@@ -59,7 +59,7 @@ namespace Nerdostat.Device.Models
             }
             Controller.Write(Pin, On? PinValue.High : PinValue.Low);
             
-            Log.LogInformation($"{Name} {(On? "ON" : "OFF")}");
+            Log.LogInformation("{Name} {status}}", Name, On? "ON" : "OFF");
         }
 
         public bool IsOn() => On;
