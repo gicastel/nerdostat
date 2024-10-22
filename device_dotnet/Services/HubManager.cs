@@ -11,7 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Nerdostat.Device.Services
-{
+{ 
     public class HubManager
     {
         private int AzureStatusPinNumber = 18;
@@ -21,8 +21,8 @@ namespace Nerdostat.Device.Services
 #else
         private readonly OutputPin AzureStatusLed;
 #endif
-        private readonly Thermostat Thermo;
-        private readonly Configuration Config;
+        private readonly Thermostat thermo;
+        private readonly ThermoConfiguration config;
         private readonly ILogger log;
 
         private static volatile DeviceClient client;
@@ -33,10 +33,10 @@ namespace Nerdostat.Device.Services
 
         private ConcurrentQueue<APIMessage> skippedMessages;
 
-        public HubManager(Configuration _config, Thermostat _thermo, ILogger<HubManager> _log)
+        public HubManager(ThermoConfiguration _config, Thermostat _thermo, ILogger<HubManager> _log)
         {
-            Config = _config;
-            Thermo = _thermo;
+            config = _config;
+            thermo = _thermo;
             log = _log;
 
             AzureStatusLed = new(AzureStatusPinNumber, log, "AzureStatusLed");
@@ -57,11 +57,10 @@ namespace Nerdostat.Device.Services
                             await client.DisposeAsync();
                         }
 
-                        client = DeviceClient.CreateFromConnectionString(Config.IotHubConnectionString, TransportType.Mqtt);
+                        client = DeviceClient.CreateFromConnectionString(config.IotHubConnectionString, TransportType.Mqtt);
 
                         var retryPolicy = new ExponentialBackoff(10, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(5));
                         client.SetRetryPolicy(retryPolicy);
-                        //client.OperationTimeoutInMilliseconds = (uint)(((Config.Interval * 60) - 30) * 1000);
                         client.SetConnectionStatusChangesHandler(ConnectionStatusChangedAsync);
                     }
                 }
@@ -131,7 +130,7 @@ namespace Nerdostat.Device.Services
             log.LogInformation("Reading data from thermo");
             using var cts = new CancellationTokenSource();
             cts.CancelAfter(new TimeSpan(0, 0, 30));
-            var thermoData = await Thermo.Refresh(cts.Token);
+            var thermoData = await thermo.Refresh(cts.Token);
             var message = new APIMessage()
             {
                 Timestamp = DateTime.Now,
@@ -154,7 +153,7 @@ namespace Nerdostat.Device.Services
 
             log.LogInformation("WEBR: {method}", DeviceMethods.SetManualSetpoint);
             var input = JsonConvert.DeserializeObject<SetPointMessage>(methodRequest.DataAsJson);
-            Thermo.OverrideSetpoint(
+            thermo.OverrideSetpoint(
                 input.Setpoint,
                 input.UntilEpoch);
             return await RefreshThermoData(methodRequest, userContext);
@@ -164,7 +163,7 @@ namespace Nerdostat.Device.Services
         {
             log.LogInformation("WEBR: {method}", DeviceMethods.ClearManualSetPoint);
 
-            Thermo.ReturnToProgram();
+            thermo.ReturnToProgram();
             return await RefreshThermoData(methodRequest, userContext);
         }
 
@@ -172,7 +171,7 @@ namespace Nerdostat.Device.Services
         {
             log.LogInformation("WEBR: {method}", DeviceMethods.SetAwayOn);
 
-            Thermo.SetAway();
+            thermo.SetAway();
             return await RefreshThermoData(methodRequest, userContext);
         }
 
@@ -222,7 +221,7 @@ namespace Nerdostat.Device.Services
                 ContentType = "application/json"
             };
 
-            if (Config.TestDevice)
+            if (config.TestDevice)
                 iotMessage.Properties.Add("testDevice", "true");
 
             try

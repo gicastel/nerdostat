@@ -29,7 +29,7 @@ namespace Nerdostat.Device.Models
             Controller.Write(Pin, PinValue.High);
 
             On = true;
-            Log.LogInformation("{Name} OFF", Name);
+            Log.LogInformation("{Name} ON", Name);
         }
 
         public void TurnOff()

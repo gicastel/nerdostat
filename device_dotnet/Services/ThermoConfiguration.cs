@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace Nerdostat.Device.Services
 {
-    public class Configuration
+    public class ThermoConfiguration
     {
 
         // Monday => 08 => 15 => 20.5 °C
@@ -60,18 +60,21 @@ namespace Nerdostat.Device.Services
         public bool TestDevice { get; set; }
 
         private const string configFilePath = "config.json";
+        [JsonIgnore]
+        public string SqlDbPath => "nerdostat.sqlite";
+        [JsonIgnore]
+        public string ModelPath => "nerdostat.model";
 
         public int Interval = 5;
 
-        public Configuration()
+        public ThermoConfiguration()
         {
 
         }
 
         public void LoadConfiguration(bool regenConfig)
         {
-            FileInfo cfgFile = new FileInfo(configFilePath);
-            if (!cfgFile.Exists || regenConfig)
+            if (!File.Exists(configFilePath) || regenConfig)
             {
                 Program = CreateDefaultProgram();
 
@@ -92,7 +95,7 @@ namespace Nerdostat.Device.Services
                 {
                     string content = sr.ReadToEnd();
 
-                    Configuration loaded = JsonConvert.DeserializeObject<Configuration>(content);
+                    ThermoConfiguration loaded = JsonConvert.DeserializeObject<ThermoConfiguration>(content);
 
                     this.Program = loaded.Program;
                     this.Threshold = loaded.Threshold;
@@ -110,7 +113,6 @@ namespace Nerdostat.Device.Services
 
         public void SaveConfiguration()
         {
-            FileInfo cfgFile = new FileInfo(configFilePath);
             string content = JsonConvert.SerializeObject(this);
             using (StreamWriter wr = new StreamWriter(configFilePath, false))
             {

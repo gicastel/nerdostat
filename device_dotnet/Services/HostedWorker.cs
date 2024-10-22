@@ -12,30 +12,30 @@ namespace Nerdostat.Device.Services
     internal class HostedWorker : IHostedService
     {
         private readonly ILogger log;
-        private readonly Thermostat Thermo;
-        private readonly HubManager Hub;
-        private readonly Configuration Config;
-        private readonly Datastore Store;
-        private readonly Predictor Predictor;
-        private readonly IHostApplicationLifetime _appLifetime;
+        private readonly Thermostat thermo;
+        private readonly HubManager hub;
+        private readonly ThermoConfiguration config;
+        private readonly SqliteDatastore sqlStore;
+        private readonly Predictor predictor;
+        private readonly IHostApplicationLifetime appLifetime;
 
         private Task _applicationTask;
 
         public HostedWorker(Thermostat _thermo, 
             HubManager _hub, 
-            Configuration _config, 
-            Datastore _datastore,
+            ThermoConfiguration _config, 
+            SqliteDatastore _datastoreSql,
             Predictor _predictor,
             ILogger<HostedWorker> _log, 
-            IHostApplicationLifetime appLifetime)
+            IHostApplicationLifetime _appLifetime)
         {
-            Thermo = _thermo;
-            Hub = _hub;
-            Config = _config;
-            Store = _datastore;
-            Predictor = _predictor;
+            thermo = _thermo;
+            hub = _hub;
+            config = _config;
+            sqlStore = _datastoreSql;
+            predictor = _predictor;
             log = _log;
-            _appLifetime = appLifetime;
+            appLifetime = _appLifetime;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
@@ -44,7 +44,7 @@ namespace Nerdostat.Device.Services
 
             CancellationTokenSource _cancellationTokenSource = null;
 
-            _appLifetime.ApplicationStarted.Register(() =>
+            appLifetime.ApplicationStarted.Register(() =>
             {
                 _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
@@ -54,30 +54,32 @@ namespace Nerdostat.Device.Services
                     //if (args.Length > 0 && args[0] == "regenConfig")
                     //    regenConfig = true;
 
-                    Config.LoadConfiguration(regenConfig);
+                    config.LoadConfiguration(regenConfig);
 
                     while (!_cancellationTokenSource.IsCancellationRequested)
                     {
                         using var maxOperationTimeout = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token);
-                        maxOperationTimeout.CancelAfter(TimeSpan.FromSeconds((Config.Interval * 60) - 15));
-                        var delay = Task.Delay(Config.Interval * 60 * 1000, _cancellationTokenSource.Token);
+                        maxOperationTimeout.CancelAfter(TimeSpan.FromSeconds((config.Interval * 60) - 15));
+                        var delay = Task.Delay(config.Interval * 60 * 1000, _cancellationTokenSource.Token);
 
                         try
                         {
-                            var message = await Thermo.Refresh(maxOperationTimeout.Token);
+                            var message = await thermo.Refresh(maxOperationTimeout.Token);
+#if RELEASE
                             if (message.Temperature.HasValue)
                             {
-                                Store.AddNew(message);
+                                sqlStore.AddMessage(message);
                             }
-                            
-                            if (Predictor.IsModelReady)
+#endif                 
+                            if (predictor.IsModelReady)
                             { 
-                                var prediction =  Predictor.Predict(message);
+                                var prediction =  predictor.Predict(message);
                                 message.PredictedTemperature = prediction;
                             }
 
-                            var sendData = Hub.TrySendMessage(message, maxOperationTimeout.Token);
-                            var retrain = Task.Run(() => Predictor.Train(), maxOperationTimeout.Token);
+                            var sendData = hub.TrySendMessage(message, maxOperationTimeout.Token);
+                            //LET IT GOOOOOOOOOO
+                            var retrain = Task.Run(() => predictor.Train()/*, maxOperationTimeout.Token*/);
                             await delay;
                         }
                         catch (OperationCanceledException) {  } //pass
@@ -90,13 +92,13 @@ namespace Nerdostat.Device.Services
                     }
 
                     log.LogWarning("Application escaped the main loop");
-                    _appLifetime.StopApplication();
+                    appLifetime.StopApplication();
                 });
             });
 
-            _appLifetime.ApplicationStopping.Register(() =>
+            appLifetime.ApplicationStopping.Register(() =>
             {
-                Config.SaveConfiguration();
+                config.SaveConfiguration();
                 log.LogInformation("Application is stopping");
                 _cancellationTokenSource?.Cancel();
             });

@@ -16,11 +16,13 @@ namespace Nerdostat.Device
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddHostedService<HostedWorker>()
-                        .AddSingleton<Configuration>()
+                        .AddSingleton<ThermoConfiguration>()
                         .AddSingleton<Thermostat>()
                         .AddSingleton<HubManager>()
-                        .AddSingleton<Datastore>()
-                        .AddSingleton<Predictor>();
+                        .AddSingleton<SqliteDatastore>()
+                        .AddSingleton<Predictor>()
+                        .AddSingleton<Microsoft.Data.Sqlite.SqliteFactory>();
+
                 })
                 .RunConsoleAsync();
         }

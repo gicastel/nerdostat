@@ -23,12 +23,12 @@ namespace Nerdostat.Device.Services
         private readonly OutputPin HeaterRelay;
         private readonly OutputPin StatusLed;
 #endif
-        private readonly Configuration Config;
+        private readonly ThermoConfiguration config;
         private readonly ILogger<Thermostat> log;
 
-        public Thermostat(Configuration _config, ILogger<Thermostat> _log)
+        public Thermostat(ThermoConfiguration _config, ILogger<Thermostat> _log)
         {
-            Config = _config;
+            config = _config;
             log = _log;
 
             HeaterRelay = new(HeaterRelayPinNumber, log, "Heater Relay");
@@ -47,7 +47,7 @@ namespace Nerdostat.Device.Services
             {           
                 var diff = Convert.ToDecimal(temperature.Value) - setpoint;
 
-                if (Math.Abs(diff) > Config.Threshold)
+                if (Math.Abs(diff) > config.Threshold)
                 {
                     if (diff < 0)
                         StartHeating();
@@ -63,10 +63,10 @@ namespace Nerdostat.Device.Services
             var heaterIsActive = HeaterRelay.IsOn();
 
             int overrideSecondsRemaining = 0;
-            if (Config.OverrideUntil.HasValue)
-                overrideSecondsRemaining = Convert.ToInt32((Config.OverrideUntil.Value - new DateTime(1970, 1, 1)).TotalSeconds);
+            if (config.OverrideUntil.HasValue)
+                overrideSecondsRemaining = Convert.ToInt32((config.OverrideUntil.Value - new DateTime(1970, 1, 1)).TotalSeconds);
 
-            Config.SaveConfiguration();
+            config.SaveConfiguration();
 
             var msg = new APIMessage()
             {
@@ -84,24 +84,24 @@ namespace Nerdostat.Device.Services
 
         public void OverrideSetpoint(decimal setpoint, long? untilEpoch)
         {
-            Config.OverrideSetpoint = setpoint;
+            config.OverrideSetpoint = setpoint;
 
             if (untilEpoch.HasValue)
-                Config.OverrideUntil = untilEpoch.Value.ToDateTime();
+                config.OverrideUntil = untilEpoch.Value.ToDateTime();
             else
-                Config.OverrideUntil = DateTime.Now.AddHours(Config.OverrideDefaultDuration);
+                config.OverrideUntil = DateTime.Now.AddHours(config.OverrideDefaultDuration);
         }
 
         public void ReturnToProgram()
         {
-            Config.OverrideSetpoint = null;
-            Config.OverrideUntil = DateTime.Now.AddSeconds(-10);
+            config.OverrideSetpoint = null;
+            config.OverrideUntil = DateTime.Now.AddSeconds(-10);
         }
 
         public void SetAway()
         {
-            Config.OverrideSetpoint = Config.AwaySetpoint;
-            Config.OverrideUntil = DateTime.Now.AddYears(1);
+            config.OverrideSetpoint = config.AwaySetpoint;
+            config.OverrideUntil = DateTime.Now.AddYears(1);
         }
 
         #region Privates
@@ -109,12 +109,12 @@ namespace Nerdostat.Device.Services
 
         private bool IsSetpointOverridden()
         {
-            if (Config.OverrideUntil.HasValue)
+            if (config.OverrideUntil.HasValue)
             {
-                if (Config.OverrideUntil.Value >= DateTime.Now)
+                if (config.OverrideUntil.Value >= DateTime.Now)
                     return true;
                 else
-                    Config.OverrideUntil = null;
+                    config.OverrideUntil = null;
             }
 
             return false;
@@ -123,15 +123,16 @@ namespace Nerdostat.Device.Services
         private decimal GetCurrentSetpoint()
         {
             if (IsSetpointOverridden())
-                return Config.OverrideSetpoint.Value;
+                return config.OverrideSetpoint.Value;
             else
             {
                 // program [monday] [08] [25 / 15 = 1]
+                // 0 == SUNDAY
                 int dow = (int)DateTime.Now.DayOfWeek;
                 int hour = DateTime.Now.Hour;
                 int minute = DateTime.Now.Minute;
                 minute -= minute % 15;
-                return Config.Program[dow][hour][minute];
+                return config.Program[dow][hour][minute];
             }
         }
 
@@ -199,6 +200,7 @@ namespace Nerdostat.Device.Services
                 catch (OperationCanceledException ex)
                 {
                     log.LogError(ex, "Sensor read cancelled due to a timeout");
+                    return (null, null);
                 }
             }
 
@@ -230,8 +232,8 @@ namespace Nerdostat.Device.Services
         private void StartHeating()
         {
 
-            if (!Config.HeaterOnSince.HasValue)
-                Config.HeaterOnSince = DateTime.Now;
+            if (!config.HeaterOnSince.HasValue)
+                config.HeaterOnSince = DateTime.Now;
 
             HeaterRelay.TurnOn();
             StatusLed.TurnOn();
@@ -246,11 +248,11 @@ namespace Nerdostat.Device.Services
         private int GetHeatingTime()
         {
             int seconds = 0;
-            if (Config.HeaterOnSince.HasValue)
+            if (config.HeaterOnSince.HasValue)
             {
                 var ts = DateTime.Now;
-                var delta = ts - Config.HeaterOnSince.Value;
-                Config.HeaterOnSince = HeaterRelay.IsOn() ? ts : null;
+                var delta = ts - config.HeaterOnSince.Value;
+                config.HeaterOnSince = HeaterRelay.IsOn() ? ts : null;
                 seconds = Convert.ToInt32(delta.TotalSeconds);
             }
             return seconds;
