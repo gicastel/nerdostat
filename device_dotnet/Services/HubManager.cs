@@ -126,7 +126,6 @@ namespace Nerdostat.Device.Services
 
         private async Task<MethodResponse> RefreshThermoData(MethodRequest methodRequest, object userContext)
         {
-            log.BeginScope(DeviceMethods.ReadNow);
             log.LogInformation("Reading data from thermo");
             using var cts = new CancellationTokenSource();
             cts.CancelAfter(new TimeSpan(0, 0, 30));
@@ -139,7 +138,8 @@ namespace Nerdostat.Device.Services
                 CurrentSetpoint = thermoData.CurrentSetpoint,
                 HeaterOn = Convert.ToInt64(thermoData.HeaterOn),
                 IsHeaterOn = thermoData.IsHeaterOn,
-                OverrideEnd = thermoData.OverrideEnd
+                OverrideEnd = thermoData.OverrideEnd,
+                SensorFailures = thermoData.SensorFailures
             };
 
             var stringData = JsonConvert.SerializeObject(message);

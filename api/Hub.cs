@@ -36,6 +36,8 @@ namespace API
             log.LogMetric("HeaterOn", msg.HeaterOn);
             if (msg.PredictedTemperature.HasValue)
                 log.LogMetric("PredictedTemperature", msg.PredictedTemperature.Value);
+            if (msg.SensorFailures.HasValue)
+                log.LogMetric("SensorFailures", msg.SensorFailures.Value);
 
             HttpClient pbi = new HttpClient();
 

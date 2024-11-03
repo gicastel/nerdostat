@@ -41,7 +41,7 @@ namespace Nerdostat.Device.Services
             var status = ReadValues(token).ConfigureAwait(false);
             var setpoint = GetCurrentSetpoint();
 
-            (double? temperature, double? relativeHumidity) = await status;
+            (double? temperature, double? relativeHumidity, int? sensorFailures) = await status;
             
             if (temperature.HasValue)
             {           
@@ -76,7 +76,8 @@ namespace Nerdostat.Device.Services
                 Temperature = temperature,
                 Timestamp = DateTime.Now,
                 IsHeaterOn = heaterIsActive,
-                OverrideEnd = overrideSecondsRemaining
+                OverrideEnd = overrideSecondsRemaining,
+                SensorFailures = sensorFailures
             };
 
             return msg;
@@ -141,7 +142,7 @@ namespace Nerdostat.Device.Services
 
         #region Hardware
 
-        private async Task<(double? temperature, double? relativeHumidity)> ReadValues(CancellationToken token)
+        private async Task<(double? temperature, double? relativeHumidity, int? sensorFailures)> ReadValues(CancellationToken token)
         {
 #if DEBUG
             return await GenerateValues(token);
@@ -151,7 +152,7 @@ namespace Nerdostat.Device.Services
             Temperature temp = default;
             RelativeHumidity hum = default;
             int wait = 5000;
-            int loop = 1;
+            int sensorFailures = 0;
 
             using (var controller = new GpioController())
             {
@@ -189,9 +190,9 @@ namespace Nerdostat.Device.Services
                         humOk = humOk && hum.Percent >= 0 && hum.Percent <= 100;
                         tempOk = tempOk && humOk;
 
-                        loop++;
+                        sensorFailures++;
 
-                        if (loop > 20)
+                        if (sensorFailures > 19)
                             break;
                     }
 
@@ -200,11 +201,11 @@ namespace Nerdostat.Device.Services
                 catch (OperationCanceledException ex)
                 {
                     log.LogError(ex, "Sensor read cancelled due to a timeout");
-                    return (null, null);
+                    return (null, null, sensorFailures);
                 }
             }
 
-            if (loop > 20)
+            if (sensorFailures > 20)
             {
                 log.LogError("Sensor read failed after 20 attempts");
                 log.LogWarning("Trying reset operation.. Finger crossed!");
@@ -214,19 +215,19 @@ namespace Nerdostat.Device.Services
                 dhtPin.TurnOn();
                 await Task.Delay(250, token).ConfigureAwait(false);
                 dhtPin.TurnOff();
-                return (null, null);
+                return (null, null, sensorFailures) ;
             }
             else
             {
                 log.LogInformation("Sensor read OK");
-                return (temp.DegreesCelsius, hum.Percent);
+                return (temp.DegreesCelsius, hum.Percent, sensorFailures);
             }
         }
 
-        private async ValueTask<(double? temperature, double? relativeHumidity)> GenerateValues(CancellationToken token)
+        private async ValueTask<(double? temperature, double? relativeHumidity, int? sensorFailures)> GenerateValues(CancellationToken token)
         {
             log.LogInformation("Generated values");
-            return (20, Random.Shared.Next(30, 90));
+            return (20, Random.Shared.Next(30, 90), 0);
         }
 
         private void StartHeating()

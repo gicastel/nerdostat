@@ -2,18 +2,12 @@
 using Nerdostat.Shared;
 using System;
 using System.IO;
-using UnitsNet;
 using System.Collections.Generic;
 using Microsoft.ML;
 using Microsoft.ML.Trainers.FastTree;
 using static Nerdostat.Device.Models.MLModels;
 using Microsoft.ML.Data;
-using Plotly.NET.LayoutObjects;
-using Plotly.NET;
-using System.Linq;
 using Microsoft.Data.Sqlite;
-using Microsoft.ML.Trainers;
-using System.Collections;
 
 namespace Nerdostat.Device.Services
 {
@@ -45,7 +39,7 @@ namespace Nerdostat.Device.Services
             config = _config;
             log = _log;
 
-            lagData = 24;
+            lagData = 6*12;
             modelPath = config.ModelPath;
 
             if (File.Exists(modelPath))
@@ -67,12 +61,6 @@ namespace Nerdostat.Device.Services
                     log.LogInformation("Not enough data to train model. Need at least 24 messages, got {count}", msgCount);
                     return;
                 }
-
-                // go back at max 2 days
-                if (msgCount > 48 * 12)
-                    msgCount = 48 * 12;
-
-                lagData = msgCount;
 
                 log.LogInformation("Training model with {count} hours", msgCount / 12);
 
@@ -171,6 +159,11 @@ namespace Nerdostat.Device.Services
                 //PredictionEngine<InputData, OutputData> predictionEngine = mlContext.Model.CreatePredictionEngine<InputData, OutputData>(predictionPipeline);
 
                 var input = sqlStore.GetPredictDataset(lagData);
+                
+                input.day = message.Timestamp.Day;
+                input.hour = message.Timestamp.Hour;
+                input.month = message.Timestamp.Month;
+                
                 log.LogInformation("Predicting...");
                 var prediction = predictionEngine.Predict(input);
                 log.LogInformation("Predicted temperature: {pred}", prediction.temperature);
@@ -181,57 +174,6 @@ namespace Nerdostat.Device.Services
                 log.LogError(ex, "Error predicting temperature");
                 return 0;
             }
-        }
-
-        private void PlotRSquaredValues(IDataView trainData, ITransformer model, string labelColumnName)
-        {
-            // Number of rows to display in charts.
-            int numberOfRows = 1000;
-            // Use the model to make batch predictions on training data
-            var testResults = model.Transform(trainData);
-
-            // Get the actual values from the dataset
-            var trueValues = testResults.GetColumn<float>(labelColumnName).Take(numberOfRows); ;
-
-            // Get the predicted values from the test results
-            var predictedValues = testResults.GetColumn<float>("Score").Take(numberOfRows);
-
-            // Setup what the graph looks like
-            var title = Title.init(Text: "R-Squared Plot");
-            var layout = Layout.init<IConvertible>(Title: title, PlotBGColor: Plotly.NET.Color.fromString("#e5ecf6"));
-            var xAxis = LinearAxis.init<IConvertible, IConvertible, IConvertible, IConvertible, IConvertible, IConvertible>(
-                    Title: Title.init("True Values"),
-                    ZeroLineColor: Plotly.NET.Color.fromString("#ffff"),
-                    GridColor: Plotly.NET.Color.fromString("#ffff"),
-                    ZeroLineWidth: 2);
-            var yAxis = LinearAxis.init<IConvertible, IConvertible, IConvertible, IConvertible, IConvertible, IConvertible>(
-                    Title: Title.init("Predicted Values"),
-                    ZeroLineColor: Plotly.NET.Color.fromString("#ffff"),
-                    GridColor: Plotly.NET.Color.fromString("#ffff"),
-                    ZeroLineWidth: 2);
-
-            // We will plot the line that shows the perfect result. Setup that line here.
-            var maximumValue = Math.Max(trueValues.Max(), predictedValues.Max());
-            var perfectX = new[] { 0, maximumValue };
-            var perfectY = new[] { 0, maximumValue };
-
-
-
-            // Create the scatterplot that shows the true values vs the predicted values
-            var trueAndPredictedValues = Chart2D.Chart.Scatter<float, float, string>(x: trueValues, y: predictedValues, mode: StyleParam.Mode.Markers)
-                            .WithLayout(layout)
-                            .WithXAxis(xAxis)
-                            .WithYAxis(yAxis);
-
-            // Setup the line that shows what a perfect prediction would look like
-            var perfectLineGraph = Chart2D.Chart.Line<float, float, string>(x: perfectX, y: perfectY)
-                            .WithLayout(layout)
-                            .WithLine(Line.init(Width: 1.5));
-
-            var chartWithValuesAndIdealLine = Chart.Combine(new[] { trueAndPredictedValues, perfectLineGraph });
-            var chartFilePath = "RegressionChart.html";
-
-            chartWithValuesAndIdealLine.SaveHtml(chartFilePath);
         }
 
         private string[] GenerateFeatures()

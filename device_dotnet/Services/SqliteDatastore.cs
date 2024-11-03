@@ -164,12 +164,13 @@ namespace Nerdostat.Device.Services
             STRFTIME(""%d"", ""Timestamp"") AS day, 
             STRFTIME(""%H"", ""Timestamp"") AS hour ";
 
-        private string GenerateLags(int lags, string field, string shortName)
+        private string GenerateLags(int lags, string field, string shortName, int startOffset = 1)
         {
             StringBuilder sb = new StringBuilder();
-            for (int i = 1; i <= lags; i++)
+            int lagName = 1;
+            for (int i = startOffset; i <= lags; i++, lagName++)
             {
-                sb.Append($"LAG ({field}, {i}) OVER (ORDER BY Id) AS {shortName}Lag{i},");
+                sb.Append($"LAG ({field}, {i}) OVER (ORDER BY Id) AS {shortName}Lag{lagName},");
             }
             sb.Length--;
             return sb.ToString();
@@ -183,7 +184,7 @@ namespace Nerdostat.Device.Services
         
         private string PredictDatasetCommand(int lags) => @$"SELECT 
             {sql_staticFeatures},
-            {GenerateLags(lags, "Temperature", "temp")} 
+            {GenerateLags(lags, "Temperature", "temp", 0)} 
             FROM messages ORDER BY Id DESC LIMIT 1;";
     }
 

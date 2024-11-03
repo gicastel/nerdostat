@@ -11,6 +11,7 @@ namespace Nerdostat.Shared
         public double CurrentSetpoint { get; set; }
         public double HeaterOn { get; set; }
         public double? PredictedTemperature { get; set; }
+        public int? SensorFailures { get; set; }
     }
 
     public class APIMessage
@@ -23,6 +24,7 @@ namespace Nerdostat.Shared
         public long? OverrideEnd { get; set; }
         public long? HeaterOn { get; set; }
         public double? PredictedTemperature { get; set; }
+        public int? SensorFailures { get; set; }
     }
 
     public class APIResponse<T>

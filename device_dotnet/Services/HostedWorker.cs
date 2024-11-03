@@ -65,17 +65,19 @@ namespace Nerdostat.Device.Services
                         try
                         {
                             var message = await thermo.Refresh(maxOperationTimeout.Token);
+                            
+                            if (predictor.IsModelReady)
+                            { 
+                                var prediction =  predictor.Predict(message);
+                                message.PredictedTemperature = prediction;
+                            }
+
 #if RELEASE
                             if (message.Temperature.HasValue)
                             {
                                 sqlStore.AddMessage(message);
                             }
 #endif                 
-                            if (predictor.IsModelReady)
-                            { 
-                                var prediction =  predictor.Predict(message);
-                                message.PredictedTemperature = prediction;
-                            }
 
                             var sendData = hub.TrySendMessage(message, maxOperationTimeout.Token);
                             //LET IT GOOOOOOOOOO
