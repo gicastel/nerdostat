@@ -46,6 +46,9 @@ namespace Nerdostat.Device.Services
                 GetDb().Execute(create);
             }
 
+            //clean up wrong reads
+            GetDb().Execute("DELETE FROM messages WHERE Temperature = -273.15;");
+
             log.LogInformation("Checked datastore sqlite");            
         }
         private SqliteConnection GetDb() =>  new SqliteConnection($"Data Source = {config.SqlDbPath}");

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -77,11 +78,18 @@ namespace Nerdostat.Device.Services
                             {
                                 sqlStore.AddMessage(message);
                             }
-#endif                 
+#endif
 
                             var sendData = hub.TrySendMessage(message, maxOperationTimeout.Token);
                             //LET IT GOOOOOOOOOO
                             var retrain = Task.Run(() => predictor.Train()/*, maxOperationTimeout.Token*/);
+                            
+                            if (message.SensorFailures > 19)
+                            {
+                                await Task.WhenAll([sendData, retrain]);
+                                log.LogError("Too many sensor failures, restarting");
+                                Process.Start(new ProcessStartInfo() { FileName = "sudo", Arguments = "reboot" });
+                            }
                             await delay;
                         }
                         catch (OperationCanceledException) {  } //pass

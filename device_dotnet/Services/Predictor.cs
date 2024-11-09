@@ -135,7 +135,7 @@ namespace Nerdostat.Device.Services
             }
         }
 
-        public double Predict(APIMessage message)
+        public double? Predict(APIMessage message)
         {
             try
             {
@@ -172,7 +172,7 @@ namespace Nerdostat.Device.Services
             catch (Exception ex)
             {
                 log.LogError(ex, "Error predicting temperature");
-                return 0;
+                return null;
             }
         }
 

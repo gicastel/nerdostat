@@ -4,6 +4,7 @@ using Nerdostat.Device.Models;
 using Nerdostat.Shared;
 using System;
 using System.Device.Gpio;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using UnitsNet;
@@ -153,6 +154,7 @@ namespace Nerdostat.Device.Services
             RelativeHumidity hum = default;
             int wait = 5000;
             int sensorFailures = 0;
+            int maxFailures = 19;
 
             using (var controller = new GpioController())
             {
@@ -192,7 +194,7 @@ namespace Nerdostat.Device.Services
 
                         sensorFailures++;
 
-                        if (sensorFailures > 19)
+                        if (sensorFailures > maxFailures)
                             break;
                     }
 
@@ -205,17 +207,18 @@ namespace Nerdostat.Device.Services
                 }
             }
 
-            if (sensorFailures > 20)
+            if (sensorFailures > maxFailures)
             {
                 log.LogError("Sensor read failed after 20 attempts");
                 log.LogWarning("Trying reset operation.. Finger crossed!");
-                var dhtPin = new OutputPin(DhtPinNumber, log, "DHT22 Pin");
-                dhtPin.TurnOff();
-                await Task.Delay(250, token).ConfigureAwait(false);
-                dhtPin.TurnOn();
-                await Task.Delay(250, token).ConfigureAwait(false);
-                dhtPin.TurnOff();
-                return (null, null, sensorFailures) ;
+
+                using var Controller = new GpioController();
+                Controller.OpenPin(1);
+                Controller.SetPinMode(1, PinMode.Output);
+                Controller.Write(1, PinValue.Low);
+                await Task.Delay(1000, token).ConfigureAwait(false);
+                Controller.Write(1, PinValue.High);
+                return (null, null, sensorFailures);
             }
             else
             {
