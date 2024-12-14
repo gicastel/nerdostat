@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System;
 using BlazorClient.Services;
 using Nerdostat.Shared;
+using Microsoft.JSInterop;
 
 namespace BlazorClient.Pages
 {
@@ -10,6 +11,7 @@ namespace BlazorClient.Pages
     {
         [Inject] IAPIClient _client { get; set; }
 
+        [Inject] IJSRuntime JSRuntime { get; set; }
         protected ProgramMessage status { get; set; }
 
         protected override async Task OnInitializedAsync()
@@ -24,6 +26,14 @@ namespace BlazorClient.Pages
                 status = new ProgramMessage();
             }
         }
+
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("renderProgramChart", status);
+        }
+    }
 
         protected async Task Save()
         {

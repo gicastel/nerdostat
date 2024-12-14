@@ -58,6 +58,7 @@ namespace Nerdostat.Device.Services
         public decimal NoFrostSetpoint { get; set; }
         public string IotHubConnectionString { get; set; }
         public bool TestDevice { get; set; }
+        public bool? OverrideWithoutExpiry { get; set; }
 
         private const string configFilePath = "config.json";
         [JsonIgnore]
@@ -82,6 +83,7 @@ namespace Nerdostat.Device.Services
                 OverrideDefaultDuration = 4;
                 AwaySetpoint = 12;
                 NoFrostSetpoint = 5;
+                OverrideWithoutExpiry = false;
                 string content = JsonConvert.SerializeObject(this);
 
                 using (StreamWriter wr = new StreamWriter(configFilePath, false))
@@ -107,6 +109,7 @@ namespace Nerdostat.Device.Services
                     this.IotHubConnectionString = loaded.IotHubConnectionString;
                     this.OverrideUntil = loaded.OverrideUntil;
                     this.TestDevice = loaded.TestDevice;
+                    this.OverrideWithoutExpiry = loaded.OverrideWithoutExpiry ?? false;
                 }
             }
         }

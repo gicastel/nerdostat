@@ -66,6 +66,11 @@ namespace Nerdostat.Device.Services
             int overrideSecondsRemaining = 0;
             if (config.OverrideUntil.HasValue)
                 overrideSecondsRemaining = Convert.ToInt32((config.OverrideUntil.Value - new DateTime(1970, 1, 1)).TotalSeconds);
+            
+            if (config.OverrideWithoutExpiry.HasValue)
+                config.OverrideWithoutExpiry = config.OverrideWithoutExpiry.Value;
+            else
+                config.OverrideWithoutExpiry = false;
 
             config.SaveConfiguration();
 
@@ -84,7 +89,7 @@ namespace Nerdostat.Device.Services
             return msg;
         }
 
-        public void OverrideSetpoint(decimal setpoint, long? untilEpoch)
+        public void OverrideSetpoint(decimal setpoint, long? untilEpoch, bool overrideWithoutExpiry)
         {
             config.OverrideSetpoint = setpoint;
 
@@ -92,11 +97,14 @@ namespace Nerdostat.Device.Services
                 config.OverrideUntil = untilEpoch.Value.ToDateTime();
             else
                 config.OverrideUntil = DateTime.Now.AddHours(config.OverrideDefaultDuration);
+
+            config.OverrideWithoutExpiry = overrideWithoutExpiry;
         }
 
         public void ReturnToProgram()
         {
             config.OverrideSetpoint = null;
+            config.OverrideWithoutExpiry = false;
             config.OverrideUntil = DateTime.Now.AddSeconds(-10);
         }
 
@@ -111,6 +119,9 @@ namespace Nerdostat.Device.Services
 
         private bool IsSetpointOverridden()
         {
+            if (config.OverrideWithoutExpiry.Value)
+                return true;
+
             if (config.OverrideUntil.HasValue)
             {
                 if (config.OverrideUntil.Value >= DateTime.Now)

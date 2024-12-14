@@ -155,7 +155,8 @@ namespace Nerdostat.Device.Services
             var input = JsonConvert.DeserializeObject<SetPointMessage>(methodRequest.DataAsJson);
             thermo.OverrideSetpoint(
                 input.Setpoint,
-                input.UntilEpoch);
+                input.UntilEpoch,
+                input.OverrideWithoutExpiry);
             return await RefreshThermoData(methodRequest, userContext);
         }
 

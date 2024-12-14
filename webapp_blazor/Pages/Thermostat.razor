@@ -16,16 +16,24 @@ else
             <div class="row "><input type="button" id="temp_plus" class="btn btn-lg btn-danger btn-block" value="+" @onclick="TempUp"/></div>
             <div class="row row-eq-height">
                 <div id="tempValue" class="h3 font-weight-normal text-right col-6">@status.Temperature.Value.ToString("F1")</div>
-                <div id="setpointValue" class="h3 font-weight-normal text-right setpoint col-6">@status.CurrentSetpoint.ToString()</div>
+                <input type="number" step="0.5" id="setpoint" class="h3 font-weight-normal text-right col-6" @bind="@status.CurrentSetpoint" />
             </div>
             <div class="row"><input type="button" id="temp_minus" class="btn btn-lg btn-primary btn-block" value="-" @onclick="TempDown" /></div>
+
             <div class="row row-eq-height">
-                <div id="OverrideDuration" class="col-5 text-center"><input type="range" step="15" min="0" max="720"
-               @bind-value="@OverrideEndInMinutes" @bind-value:event="oninput"
-               @onmouseup="ChangeSetpointDuration" @ontouchend="ChangeSetpointDuration"></div>
-               <div class="col-5 text-center">@OverrideUntilString</div>
+                <div class="col-12 text-center">
+                    <input type="checkbox" id="overrideCheckbox" @bind="OverrideExpires" /><label for="overrideCheckbox">Scadenza</label>
+                </div>
+            </div>
+            
+            <div class="row row-eq-height">
+                <div id="OverrideDuration" class="col-6 text-center"><input type="range" step="15" min="0" max="720"
+                        @bind-value="@OverrideEndInMinutes" @bind-value:event="oninput"
+                        @onmouseup="ChangeSetpointDuration" @ontouchend="ChangeSetpointDuration"></div>
+                <div class="col-6 text-center">@OverrideUntilString</div>
                 <div class="col-2 text-center"><input id="reset" type="button" class="btn btn-secondary" value="CE" @onclick="Reset"/></div>
             </div>
+
 
             <div class="row row-eq-height">
                 <div class="h5 font-weight-normal text-center col-3">Status:</div>
@@ -35,11 +43,9 @@ else
             </div>
 
             <div class="row row-eq-height">
-                <div class="h5 font-weight-normal text-center col-3">Humidity:</div>
-                <div class="h5 font-weight-normal text-center col-3">
+                <div class="h5 font-weight-normal text-center col-6">Humidity:</div>
+                <div class="h5 font-weight-normal text-center col-6">
                     <div id="humidityValue">@status.Humidity.Value.ToString()</div>
-                    <div class="h5 font-weight-normal text-center col-3"></div>
-                    <div class="h5 font-weight-normal text-center col-3"></div>
                 </div>
             </div>
         </div>

@@ -13,6 +13,7 @@ namespace BlazorClient.Pages
 
         protected APIMessage status { get; set; }
 
+        protected bool OverrideExpires { get; set; }
         protected int OverrideEndInMinutes { get; set; }
         protected string OverrideUntilString => (OverrideEndInMinutes > 0 ? DateTime.Now.AddMinutes(Convert.ToDouble(OverrideEndInMinutes)).ToString("HH:mm dd/MM") : "--" );
 
@@ -37,7 +38,8 @@ namespace BlazorClient.Pages
                     CurrentSetpoint = 0,
                     IsHeaterOn = false,
                     OverrideEnd = null,
-                    HeaterOn = null
+                    HeaterOn = null,
+                    OverrideWithoutExpiry = false
                 };
                 ConnectionIcon = ConnectionStatusIcon.OFF;                
             }
@@ -58,6 +60,11 @@ namespace BlazorClient.Pages
             else
                 this.OverrideEndInMinutes = 0;
 
+            if (status.OverrideWithoutExpiry.HasValue)
+                this.OverrideExpires = !status.OverrideWithoutExpiry.Value;
+            else
+                this.OverrideExpires = true;
+
             HeaterIcon = status.IsHeaterOn ? HeaterStatusIcon.ON : HeaterStatusIcon.OFF;
         }
 
@@ -76,14 +83,14 @@ namespace BlazorClient.Pages
         {
             decimal newTemp = status.CurrentSetpoint + tempVariation;
 
-            status = await _client.ModifySetPoint(newTemp, (OverrideEndInMinutes > 0 ? (long?)OverrideEndInMinutes + 1 : null));
+            status = await _client.ModifySetPoint(newTemp, (OverrideEndInMinutes > 0 ? (long?)OverrideEndInMinutes + 1 : null), !OverrideExpires);
             RefreshStatus();
         }
 
 
         protected async Task ChangeSetpointDuration()
         {
-            status = await _client.ModifySetPoint(status.CurrentSetpoint, OverrideEndInMinutes);
+            status = await _client.ModifySetPoint(status.CurrentSetpoint, OverrideEndInMinutes, !OverrideExpires);
             RefreshStatus();
         }
 

@@ -13,37 +13,29 @@ else
 {
     <div class="jumbotron vertical-center">
         <div class="container">
-            <FluentAccordion>
-          @*  @foreach (var day in status.Keys)
+            @for (int i = 0; i < 7; i++)
             {
-                    <FluentAccordionItem Heading=@Enum.GetName(typeof(Nerdostat.Shared.PyWeekDays), day)>
-                        <FluentDataGrid GenerateHeader=GenerateHeaderOption.None GridTemplateColumns="1fr 1fr" TItem=string>
-                    <FluentDataGridRow TItem=string RowType="DataGridRowType.Header">
-                        <FluentDataGridCell GridColumn=1 CellType="DataGridCellType.ColumnHeader">Hour</FluentDataGridCell>
-                        <FluentDataGridCell GridColumn=2 CellType="DataGridCellType.ColumnHeader">00->15</FluentDataGridCell>
-                        <FluentDataGridCell GridColumn=3 CellType="DataGridCellType.ColumnHeader">15->30</FluentDataGridCell>
-                        <FluentDataGridCell GridColumn=4 CellType="DataGridCellType.ColumnHeader">30->45</FluentDataGridCell>
-                        <FluentDataGridCell GridColumn=5 CellType="DataGridCellType.ColumnHeader">45->00</FluentDataGridCell>
-                    </FluentDataGridRow>
-                    @foreach (var hour in status[day].Keys)
-                    {
-                        <FluentDataGridRow TItem=string>
-                            <FluentDataGridCell GridColumn=1>@hour.ToString("##")</FluentDataGridCell>
-                            <FluentDataGridCell GridColumn=2><FluentNumberField @bind-Value=status[day][hour][0]></FluentNumberField></FluentDataGridCell>
-                            <FluentDataGridCell GridColumn=3><FluentNumberField @bind-Value=status[day][hour][1]></FluentNumberField></FluentDataGridCell>
-                            <FluentDataGridCell GridColumn=4><FluentNumberField @bind-Value=status[day][hour][2]></FluentNumberField></FluentDataGridCell>
-                            <FluentDataGridCell GridColumn=5><FluentNumberField @bind-Value=status[day][hour][3]></FluentNumberField></FluentDataGridCell>
-                        </FluentDataGridRow>
-                    }
-                    </FluentDataGrid>
-
-                </FluentAccordionItem>
-            } *@
-            </FluentAccordion>
+                <div id="chartContainer_@i" style="height: 370px; width: 100%;">
+                    <canvas id="programChart_@i"></canvas>
+                </div>
+            }
         </div>
         <div>
             <FluentButton @onclick=@Save>Save</FluentButton>
             <FluentButton @onclick=@Reset>Reset</FluentButton>
         </div>
     </div>
+}
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            for (int i = 0; i < 7; i++)
+            {
+                await JSRuntime.InvokeVoidAsync("renderEditableProgramChart", status, i);
+            }
+        }
+    }
 }

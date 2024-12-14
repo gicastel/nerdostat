@@ -9,7 +9,7 @@ namespace BlazorClient.Services
     public interface IAPIClient
     {
         Task<APIMessage> GetData();
-        Task<APIMessage> ModifySetPoint(decimal newTempValue, long? remainingMinutes);
+        Task<APIMessage> ModifySetPoint(decimal newTempValue, long? remainingMinutes, bool overrideWithoutExpiry = false);
         Task<APIMessage> ResetSetPoint();
 
         Task<ProgramMessage> GetProgram();
@@ -40,7 +40,7 @@ namespace BlazorClient.Services
             return msg.payload;
         }
 
-        public async Task<APIMessage> ModifySetPoint(decimal newTempValue, long? remainingMinutes)
+        public async Task<APIMessage> ModifySetPoint(decimal newTempValue, long? remainingMinutes, bool overrideWithoutExpiry = false)
         {
             long? epoch = null;
             if (remainingMinutes is not null)
@@ -48,7 +48,8 @@ namespace BlazorClient.Services
 
             var setpoint = new SetPointMessage(){
                 Setpoint = newTempValue,
-                UntilEpoch = epoch
+                UntilEpoch = epoch,
+                OverrideWithoutExpiry = false
             };
             var response = await _client.PostAsJsonAsync(_client.BaseAddress + "setpoint/add", setpoint);
             response.EnsureSuccessStatusCode();

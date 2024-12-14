@@ -25,6 +25,7 @@ namespace Nerdostat.Shared
         public long? HeaterOn { get; set; }
         public double? PredictedTemperature { get; set; }
         public int? SensorFailures { get; set; }
+        public bool? OverrideWithoutExpiry { get; set; }
     }
 
     public class APIResponse<T>
@@ -42,6 +43,7 @@ namespace Nerdostat.Shared
     {
         public decimal Setpoint { get; set; }
         public long? UntilEpoch { get; set; }
+        public bool OverrideWithoutExpiry { get; set; }
     }
 
     public static class DeviceMethods

@@ -38,13 +38,15 @@ namespace API.Services
             return await Client.InvokeDeviceMethodAsync(deviceID, methodInvocation);
         }
 
-        public static async Task<CloudToDeviceMethodResult> SetManualSetpoint(decimal setpoint, long? untilEpoch)
+        public static async Task<CloudToDeviceMethodResult> SetManualSetpoint(decimal setpoint, long? untilEpoch, bool? overrideWithoutExpiry)
         {
             var methodInvocation = new CloudToDeviceMethod(DeviceMethods.SetManualSetpoint) { ResponseTimeout = TimeSpan.FromSeconds(Timeout) };
             JObject payload = new JObject();
             payload.Add("setpoint", setpoint);
             if (untilEpoch.HasValue)
                 payload.Add("untilEpoch", untilEpoch.Value);
+            if (overrideWithoutExpiry.HasValue)
+                payload.Add("overrideWithoutExpiry", overrideWithoutExpiry.Value);
             methodInvocation.SetPayloadJson(payload.ToString());
 
             return await Client.InvokeDeviceMethodAsync(deviceID, methodInvocation);

@@ -72,7 +72,7 @@ namespace Nerdostat.Device.Services
 
                 var dbloader = mlContext.Data.CreateDatabaseLoader<InputData>();
 
-                DatabaseSource dbSource = new DatabaseSource(sqliteFactory, $"Data Source = {config.SqlDbPath}", sqlStore.TrainDatasetCommand(lagData));
+                DatabaseSource dbSource = new DatabaseSource(sqliteFactory, $"Data Source = {config.SqlDbPath}", sqlStore.TrainDatasetCommand());
 
                 var data = dbloader.Load(dbSource);
 
@@ -158,11 +158,7 @@ namespace Nerdostat.Device.Services
                 // Create PredictionEngines
                 //PredictionEngine<InputData, OutputData> predictionEngine = mlContext.Model.CreatePredictionEngine<InputData, OutputData>(predictionPipeline);
 
-                var input = sqlStore.GetPredictDataset(lagData);
-                
-                input.day = message.Timestamp.Day;
-                input.hour = message.Timestamp.Hour;
-                input.month = message.Timestamp.Month;
+                var input = sqlStore.GetPredictDataset();
                 
                 log.LogInformation("Predicting...");
                 var prediction = predictionEngine.Predict(input);
