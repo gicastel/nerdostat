@@ -11,10 +11,10 @@ namespace Nerdostat.Device.Models
         public double Latitude { get; set; }
 
         [JsonProperty("longitude")]
-        public double Longitude { get; set; }
+        public decimal Longitude { get; set; }
 
         [JsonProperty("generationtime_ms")]
-        public double GenerationtimeMs { get; set; }
+        public decimal GenerationtimeMs { get; set; }
 
         [JsonProperty("utc_offset_seconds")]
         public long UtcOffsetSeconds { get; set; }
@@ -26,7 +26,7 @@ namespace Nerdostat.Device.Models
         public string TimezoneAbbreviation { get; set; }
 
         [JsonProperty("elevation")]
-        public long Elevation { get; set; }
+        public decimal Elevation { get; set; }
 
         [JsonProperty("current_units")]
         public Units CurrentUnits { get; set; }
@@ -50,13 +50,13 @@ namespace Nerdostat.Device.Models
         public long Interval { get; set; }
 
         [JsonProperty("temperature_2m")]
-        public float Temperature2M { get; set; }
+        public decimal Temperature2M { get; set; }
 
         [JsonProperty("relative_humidity_2m")]
         public int RelativeHumidity2M { get; set; }
 
         [JsonProperty("precipitation")]
-        public float Precipitation { get; set; }
+        public decimal Precipitation { get; set; }
 
         [JsonProperty("cloud_cover")]
         public int CloudCover { get; set; }
@@ -89,13 +89,13 @@ namespace Nerdostat.Device.Models
         public DateTime[] Time { get; set; }
 
         [JsonProperty("temperature_2m")]
-        public float[] Temperature2M { get; set; }
+        public decimal[] Temperature2M { get; set; }
 
         [JsonProperty("relative_humidity_2m")]
         public int[] RelativeHumidity2M { get; set; }
 
         [JsonProperty("precipitation")]
-        public float[] Precipitation { get; set; }
+        public decimal[] Precipitation { get; set; }
 
         [JsonProperty("cloud_cover")]
         public int[] CloudCover { get; set; }

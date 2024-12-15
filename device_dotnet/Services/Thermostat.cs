@@ -221,14 +221,6 @@ namespace Nerdostat.Device.Services
             if (sensorFailures > maxFailures)
             {
                 log.LogError("Sensor read failed after 20 attempts");
-                log.LogWarning("Trying reset operation.. Finger crossed!");
-
-                using var Controller = new GpioController();
-                Controller.OpenPin(1);
-                Controller.SetPinMode(1, PinMode.Output);
-                Controller.Write(1, PinValue.Low);
-                await Task.Delay(1000, token).ConfigureAwait(false);
-                Controller.Write(1, PinValue.High);
                 return (null, null, sensorFailures);
             }
             else

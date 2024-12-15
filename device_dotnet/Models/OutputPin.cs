@@ -59,7 +59,10 @@ namespace Nerdostat.Device.Models
             }
             Controller.Write(Pin, On? PinValue.High : PinValue.Low);
             
-            Log.LogInformation("{Name} {status}}", Name, On? "ON" : "OFF");
+            if (On)
+                Log.LogInformation("{Name} ON", Name);
+            else
+                Log.LogInformation("{Name} OFF", Name);
         }
 
         public bool IsOn() => On;

@@ -1,31 +1,48 @@
 using System;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nerdostat.Device.Models;
+using Newtonsoft.Json;
 
 namespace Nerdostat.Device.Services
 {
     public class MeteoService
     {
-        const float latitude = 44.1613F;
-        const float longitude = 10.8941F;
+        const decimal latitude = 44.1613M;
+        const decimal longitude = 10.8941M;
         const string timezone = "Europe/Berlin";
         private readonly HttpClient _httpClient;
         private readonly SqliteDatastore _datastore;
+        private readonly ILogger<MeteoService> log;
 
+        private Timer requestData;
 
-        public MeteoService(HttpClient httpClient, SqliteDatastore sqlDataStore)
+        public MeteoService(HttpClient httpClient, SqliteDatastore sqlDataStore, ILogger<MeteoService> _log)
         {
             _httpClient = httpClient;
             _datastore = sqlDataStore;
+            log = _log;
 
-            Timer requestData = new Timer(async (e) => await GetMeteoDataAsync(), null, TimeSpan.Zero, TimeSpan.FromHours(1));
+            requestData = new Timer(async (e) => await GetMeteoDataAsync(), null, TimeSpan.FromHours(1), TimeSpan.FromHours(1));
+        }
 
-            // check if we have any missing data
+        public async Task Initialize()
+        {
             var pastDays = _datastore.GetMissingMeteoDataDays();
-            GetMeteoDataAsync(2, pastDays).GetAwaiter().GetResult();
+            if (pastDays < 0)
+            {
+                log.LogInformation("No missing meteo data");
+                return;
+            }
+            else
+            {
+                log.LogInformation($"Getting meteo data for {pastDays} days");
+                await GetMeteoDataAsync(2, pastDays);
+            }
         }
 
         public async Task GetMeteoDataAsync(int forecastDays = 2, int pastDays = 1)
@@ -36,10 +53,13 @@ namespace Nerdostat.Device.Services
             // &timezone=Europe%2FBerlin
             // &past_days=1&forecast_days=1
 
-            string url = $"https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}&current=temperature_2m,relative_humidity_2m,precipitation,cloud_cover&hourly=temperature_2m,relative_humidity_2m,precipitation,cloud_cover&timezone={timezone}&past_days={pastDays}&forecast_days={forecastDays}";
+            string url = $"https://api.open-meteo.com/v1/forecast?latitude={latitude.ToString().Replace(',','.')}&longitude={longitude.ToString().Replace(',', '.')}&current=temperature_2m,relative_humidity_2m,precipitation,cloud_cover&hourly=temperature_2m,relative_humidity_2m,precipitation,cloud_cover&timezone={timezone}&past_days={pastDays}&forecast_days={forecastDays}";
 
-            var meteoData = await _httpClient.GetFromJsonAsync<MeteoDataResponse>(url);
-            
+            var meteoDataResponse = await _httpClient.GetStringAsync(url);
+
+            // serialize data
+            var meteoData = JsonConvert.DeserializeObject<MeteoDataResponse>(meteoDataResponse);
+
             for (int i = 0; i < meteoData.Hourly.Time.Length; i++)
             {
                 _datastore.UpsertMeteoData(meteoData.Hourly.Time[i], meteoData.Hourly.Temperature2M[i], meteoData.Hourly.RelativeHumidity2M[i], meteoData.Hourly.Precipitation[i], meteoData.Hourly.CloudCover[i]);

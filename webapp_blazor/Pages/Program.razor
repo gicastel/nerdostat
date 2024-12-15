@@ -1,5 +1,7 @@
 @page "/program"
 @inherits ProgramBase
+@inject IJSRuntime JSRuntime
+
 
 @if (status == null)
 {
@@ -26,6 +28,7 @@ else
         </div>
     </div>
 }
+
 
 @code {
     protected override async Task OnAfterRenderAsync(bool firstRender)

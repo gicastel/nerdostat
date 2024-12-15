@@ -35,12 +35,22 @@ namespace Nerdostat.Device.Models
         public async Task Blink(decimal OnDuration, decimal OffDuration, CancellationToken cts)
         {
             Log.LogInformation("{Name} blinking", Name);
-            while (!cts.IsCancellationRequested)
+            try
             {
-                await Task.Delay(Convert.ToInt32((OnDuration + OffDuration) * 1000), CancellationToken.None);
+                while (!cts.IsCancellationRequested)
+                {
+                    await Task.Delay(Convert.ToInt32((OnDuration + OffDuration) * 1000), CancellationToken.None);
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                Log.LogWarning("{Name} blinking canceled", Name);
             }
 
-            Log.LogInformation("{Name} {status}", Name, On ? "ON" : "OFF");
+            if (On)
+                Log.LogInformation("{Name} ON", Name);
+            else
+                Log.LogInformation("{Name} OFF", Name);
         }
 
         public bool IsOn() => On;

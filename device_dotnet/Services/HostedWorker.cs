@@ -18,6 +18,7 @@ namespace Nerdostat.Device.Services
         private readonly ThermoConfiguration config;
         private readonly SqliteDatastore sqlStore;
         private readonly Predictor predictor;
+        private readonly MeteoService meteo;
         private readonly IHostApplicationLifetime appLifetime;
 
         private Task _applicationTask;
@@ -27,6 +28,8 @@ namespace Nerdostat.Device.Services
             ThermoConfiguration _config, 
             SqliteDatastore _datastoreSql,
             Predictor _predictor,
+            MeteoService _meteo,
+
             ILogger<HostedWorker> _log, 
             IHostApplicationLifetime _appLifetime)
         {
@@ -35,6 +38,7 @@ namespace Nerdostat.Device.Services
             config = _config;
             sqlStore = _datastoreSql;
             predictor = _predictor;
+            meteo = _meteo;
             log = _log;
             appLifetime = _appLifetime;
         }
@@ -56,6 +60,14 @@ namespace Nerdostat.Device.Services
                     //    regenConfig = true;
 
                     config.LoadConfiguration(regenConfig);
+                    try
+                    {
+                        await meteo.Initialize();
+                    }
+                    catch (Exception ex)
+                    {
+                        log.LogError(ex, "Failed to initialize meteo service");
+                    }
 
                     while (!_cancellationTokenSource.IsCancellationRequested)
                     {
@@ -86,8 +98,8 @@ namespace Nerdostat.Device.Services
                             
                             if (message.SensorFailures > 19)
                             {
+                                log.LogError("Too many sensor failures, restarting...");
                                 await Task.WhenAll([sendData, retrain]);
-                                log.LogError("Too many sensor failures, restarting");
                                 Process.Start(new ProcessStartInfo() { FileName = "sudo", Arguments = "reboot" });
                             }
                             await delay;

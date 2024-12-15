@@ -44,6 +44,57 @@ namespace Nerdostat.Device.Models
             public float tempLag22 { get; set; }
             public float tempLag23 { get; set; }
             public float tempLag24 { get; set; }
+            public float tempLag25 { get; set; } 
+            public float tempLag26 { get; set; }
+            public float tempLag27 { get; set; }
+            public float tempLag28 { get; set; }
+            public float tempLag29 { get; set; }
+            public float tempLag30 { get; set; }
+            public float tempLag31 { get; set; }
+            public float tempLag32 { get; set; }
+            public float tempLag33 { get; set; }
+            public float tempLag34 { get; set; }
+            public float tempLag35 { get; set; }
+            public float tempLag36 { get; set; }
+            public float tempLag37 { get; set; }
+            public float tempLag38 { get; set; }
+            public float tempLag39 { get; set; }
+            public float tempLag40 { get; set; }
+            public float tempLag41 { get; set; }
+            public float tempLag42 { get; set; }
+            public float tempLag43 { get; set; }
+            public float tempLag44 { get; set; }
+            public float tempLag45 { get; set; }
+            public float tempLag46 { get; set; }
+            public float tempLag47 { get; set; }
+            public float tempLag48 { get; set; }
+            public float tempLag49 { get; set; }
+            public float tempLag50 { get; set; }
+            public float tempLag51 { get; set; }
+            public float tempLag52 { get; set; }
+            public float tempLag53 { get; set; }
+            public float tempLag54 { get; set; }
+            public float tempLag55 { get; set; }
+            public float tempLag56 { get; set; }
+            public float tempLag57 { get; set; }
+            public float tempLag58 { get; set; }
+            public float tempLag59 { get; set; }
+            public float tempLag60 { get; set; }
+            public float tempLag61 { get; set; }
+            public float tempLag62 { get; set; }
+            public float tempLag63 { get; set; }
+            public float tempLag64 { get; set; }
+            public float tempLag65 { get; set; }
+            public float tempLag66 { get; set; }
+            public float tempLag67 { get; set; }
+            public float tempLag68 { get; set; }
+            public float tempLag69 { get; set; }
+            public float tempLag70 { get; set; }
+            public float tempLag71 { get; set; }
+            public float tempLag72 { get; set; }
+
+
+
             //public float heaterOnLast5Minutes { get; set; }
             //public float heaterOnLast10Minutes { get; set; }
             //public float heaterOnLast15Minutes { get; set; }

@@ -19,10 +19,11 @@ namespace Nerdostat.Device
                         .AddSingleton<ThermoConfiguration>()
                         .AddSingleton<Thermostat>()
                         .AddSingleton<HubManager>()
+                        .AddHttpClient()
                         .AddSingleton<SqliteDatastore>()
+                        .AddSingleton<MeteoService>()
                         .AddSingleton<Predictor>()
                         .AddSingleton<Microsoft.Data.Sqlite.SqliteFactory>();
-
                 })
                 .RunConsoleAsync();
         }

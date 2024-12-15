@@ -111,7 +111,7 @@ namespace Nerdostat.Device.Services
         public string TrainDatasetCommand() => @$"SELECT * FROM traindata;";
         private string PredictDatasetCommand() => @$"SELECT * FROM predictdata;";
     
-        public void UpsertMeteoData(DateTime dt, float temperature, float humidity, float precipitation, float cloudCover)
+        public void UpsertMeteoData(DateTime dt, decimal temperature, decimal humidity, decimal precipitation, decimal cloudCover)
         {
             using (var db = GetDb())
             {
@@ -135,10 +135,11 @@ namespace Nerdostat.Device.Services
         {
             using (var db = GetDb())
             {
-                var lastForecast = db.QuerySingle<DateTime>("SELECT Timestamp FROM meteodata ORDER BY Id DESC LIMIT 1;");
+                // check if we have any forecast
+                var lastForecast = db.QuerySingleOrDefault<DateTime>("SELECT Timestamp FROM meteodata ORDER BY Id DESC LIMIT 1;");
                 
                 if (lastForecast != default)
-                    return (DateTime.Now - lastForecast).Days;
+                    return (DateTime.Now - Convert.ToDateTime(lastForecast)).Days;
 
                 var firstMessage = db.QuerySingle<DateTime>("SELECT Timestamp FROM messages ORDER BY Id LIMIT 1;");
                 return (DateTime.Now - firstMessage).Days;
