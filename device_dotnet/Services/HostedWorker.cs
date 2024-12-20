@@ -1,10 +1,7 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -60,6 +57,7 @@ namespace Nerdostat.Device.Services
                     //    regenConfig = true;
 
                     config.LoadConfiguration(regenConfig);
+                    
                     try
                     {
                         await meteo.Initialize();
@@ -69,21 +67,40 @@ namespace Nerdostat.Device.Services
                         log.LogError(ex, "Failed to initialize meteo service");
                     }
 
+                    var retrain = Task.Run(async () =>
+                    {
+                        while (!_cancellationTokenSource.IsCancellationRequested)
+                        {
+                            try
+                            {
+                                var training = Task.Delay(TimeSpan.FromHours(24), _cancellationTokenSource.Token);
+                                predictor.Train(_cancellationTokenSource.Token);
+                                await training;
+                            }
+                            catch (OperationCanceledException) { } //pass
+                            catch (Exception ex)
+                            {
+                                log.LogError(ex, "Exception in retrain loop");
+                            }
+                        }
+                    });
+
                     while (!_cancellationTokenSource.IsCancellationRequested)
                     {
                         using var maxOperationTimeout = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token);
+                        
                         maxOperationTimeout.CancelAfter(TimeSpan.FromSeconds((config.Interval * 60) - 15));
                         var delay = Task.Delay(config.Interval * 60 * 1000, _cancellationTokenSource.Token);
+
+                        using var predictTimeout = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token);
+                        predictTimeout.CancelAfter(TimeSpan.FromSeconds(config.Interval * 60 - 30));
 
                         try
                         {
                             var message = await thermo.Refresh(maxOperationTimeout.Token);
                             
-                            if (predictor.IsModelReady)
-                            { 
-                                var prediction =  predictor.Predict(message);
-                                message.PredictedTemperature = prediction;
-                            }
+                            var prediction =  await predictor.Predict(predictTimeout.Token);
+                            message.PredictedTemperature = prediction;                            
 
 #if RELEASE
                             if (message.Temperature.HasValue)
@@ -94,12 +111,11 @@ namespace Nerdostat.Device.Services
 
                             var sendData = hub.TrySendMessage(message, maxOperationTimeout.Token);
                             //LET IT GOOOOOOOOOO
-                            var retrain = Task.Run(() => predictor.Train()/*, maxOperationTimeout.Token*/);
                             
                             if (message.SensorFailures > 19)
                             {
-                                log.LogError("Too many sensor failures, restarting...");
-                                await Task.WhenAll([sendData, retrain]);
+                                log.LogError("Too many sensor failures, restarting...");                                
+                                await Task.WhenAll([sendData]);
                                 Process.Start(new ProcessStartInfo() { FileName = "sudo", Arguments = "reboot" });
                             }
                             await delay;

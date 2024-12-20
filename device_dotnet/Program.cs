@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Nerdostat.Device.Services;
 using System.IO;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Http;
 
 namespace Nerdostat.Device
 {
@@ -19,11 +20,11 @@ namespace Nerdostat.Device
                         .AddSingleton<ThermoConfiguration>()
                         .AddSingleton<Thermostat>()
                         .AddSingleton<HubManager>()
-                        .AddHttpClient()
                         .AddSingleton<SqliteDatastore>()
                         .AddSingleton<MeteoService>()
                         .AddSingleton<Predictor>()
-                        .AddSingleton<Microsoft.Data.Sqlite.SqliteFactory>();
+                        .AddSingleton<Microsoft.Data.Sqlite.SqliteFactory>()
+                        .AddHttpClient();
                 })
                 .RunConsoleAsync();
         }

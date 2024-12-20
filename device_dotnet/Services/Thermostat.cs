@@ -4,7 +4,6 @@ using Nerdostat.Device.Models;
 using Nerdostat.Shared;
 using System;
 using System.Device.Gpio;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using UnitsNet;
