@@ -1,0 +1,15 @@
+# /lib/systemd/system/nerdostat.service
+
+[Unit]
+Description=Nerdostat Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/jack/nerdostat/device/Nerdostat.Device
+Restart=on-failure
+User=jack
+WorkingDirectory=/home/jack/nerdostat/device/
+
+[Install]
+WantedBy=multi-user.target

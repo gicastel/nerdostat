@@ -1,0 +1,170 @@
+.thermostat-display {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 2rem;
+  color: white;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.thermostat-display.error {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.thermostat-display.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.status-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.heater-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 25px;
+  font-weight: 600;
+}
+
+.heater-status.on {
+  background: rgba(255, 107, 107, 0.3);
+}
+
+.heater-status.off {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.status-icon {
+  font-size: 1.5rem;
+}
+
+.refreshing {
+  font-size: 1.5rem;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.temperature-display {
+  text-align: center;
+  margin: 2rem 0;
+}
+
+.current-temp {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.temp-value {
+  font-size: 5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.temp-unit {
+  font-size: 2rem;
+  font-weight: 300;
+}
+
+.sensor-warning {
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background: rgba(255, 193, 7, 0.3);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.additional-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+}
+
+.info-label {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.override-badge {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  background: rgba(255, 193, 7, 0.5);
+  border-radius: 4px;
+}
+
+.override-info {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.last-update-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 25px;
+  background: rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.2px;
+}
+
+.spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid white;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+
+.hint {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}

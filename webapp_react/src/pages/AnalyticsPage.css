@@ -1,0 +1,29 @@
+.analytics-page {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.analytics-page h2 {
+  margin-bottom: 1.5rem;
+  color: #333;
+  font-size: 1.75rem;
+}
+
+.analytics-container {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-height: 600px;
+}
+
+@media (max-width: 768px) {
+  .analytics-page {
+    padding: 0 1rem;
+  }
+
+  .analytics-container {
+    min-height: 400px;
+    padding: 1rem;
+  }
+}

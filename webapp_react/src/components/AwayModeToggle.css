@@ -1,0 +1,81 @@
+.away-mode-toggle {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.away-mode-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.away-mode-header h3 {
+  margin: 0 0 0.25rem 0;
+  color: #333;
+  font-size: 1.25rem;
+}
+
+.away-mode-description {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 60px;
+  height: 32px;
+  background: #ccc;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  flex-shrink: 0;
+}
+
+.toggle-switch:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.toggle-switch.active {
+  background: #667eea;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch.active .toggle-slider {
+  transform: translateX(28px);
+}
+
+.error-message {
+  padding: 0.75rem;
+  background: #ffebee;
+  color: #c62828;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+}
+
+.away-active-message {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #e3f2fd;
+  color: #1565c0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  text-align: center;
+}

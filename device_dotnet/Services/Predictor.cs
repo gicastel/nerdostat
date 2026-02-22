@@ -174,7 +174,7 @@ namespace Nerdostat.Device.Services
                 "hour"
             };
 
-            for (int i = 1; i <= 73; i++)
+            for (int i = 1; i <= 72; i++)
             {
                 features.Add($"tempLag{i}");
             }

@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  react-app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_BASE_URL=http://host.docker.internal:7071
+      - VITE_API_KEY=
+
+  # Optional: Azure Functions API service
+  # Uncomment if you want to run the API alongside the React app
+  # api:
+  #   build:
+  #     context: ../../api
+  #     dockerfile: ../deploy.Dockerfile
+  #   ports:
+  #     - "7071:7071"
+  #   environment:
+  #     - AzureWebJobsStorage=UseDevelopmentStorage=true

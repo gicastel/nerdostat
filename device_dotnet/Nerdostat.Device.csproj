@@ -24,6 +24,9 @@
     <None Update="config.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="DatabaseSchema.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <Import Project="..\shared\Nerdostat.Shared.projitems" Label="Shared" />
 </Project>
